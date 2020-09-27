@@ -1,7 +1,15 @@
 Makefile
+<<<<<<< HEAD
 /arduino_test/*
 /build/*
 /BNO055_driver/*
 /pololu_imu/*
 /IMU_math/*
 /Debug/
+=======
+Winter2020/build/*
+Winter2020/BNO055_driver/*
+Winter2020/pololu_imu/*
+Winter2020/IMU_math/*
+*.map
+>>>>>>> 1ee2c1fc22ca72607a5d4cd0f83471e7024c24b6
