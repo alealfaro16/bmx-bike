@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
+#include <stdio.h>
 
 #include "inc/hw_i2c.h"
 #include "inc/hw_memmap.h"
@@ -16,7 +18,6 @@
 #include "bmx_bluetooth.h"
 //#include "bno055.h"
 #include "lsm9ds1.h"
-#include <math.h>
 
 //int16_t gx, gy, gz; // x, y, and z axis readings of the gyroscope
 //int16_t ax, ay, az; // x, y, and z axis readings of the accelerometer
@@ -24,6 +25,7 @@
 //int16_t temperature; // Chip temperature
 
 const float PI = 3.14159265358979323846;
+char imu_str[100];
 
 
 extern void UARTprintf(const char *pcString, ...);
@@ -85,42 +87,45 @@ extern void UARTprintf(const char *pcString, ...);
 // http://www51.honeywell.com/aero/common/documents/myaerospacecatalog-documents/Defense_Brochures-documents/Magnetic__Literature_Application_notes-documents/AN203_Compass_Heading_Using_Magnetometers.pdf
 void printQuaternion()//float ax, float ay, float az, float mx, float my, float mz)
 {
-   int16_t  ax, ay, az; // x, y, and z axis readings of the accelerometer
-   int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
+  int16_t  ax, ay, az; // x, y, and z axis readings of the accelerometer
+  int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
 
-   readAccel(&ax, &ay, &az);
-   readMag(&mx, &my, &mz);
+  readAccel(&ax, &ay, &az);
+  readMag(&mx, &my, &mz);
 
   float roll = atan2(ay, az);
   float pitch = atan2(-ax, sqrt(ay * ay + az * az));
 
-  float heading;
+  float yaw;
   if (my == 0)
-    heading = (mx < 0) ? 180.0 : 0;
+    yaw = (mx < 0) ? 180.0 : 0;
   else
-    heading = atan2(mx, my);
+    yaw = atan2(mx, my);
 
 //  heading -= DECLINATION * PI / 180;
 
-  if (heading > PI) heading -= (2 * PI);
-  else if (heading < -PI) heading += (2 * PI);
-  else if (heading < 0) heading += 2 * PI;
+  if (yaw > PI) yaw -= (2 * PI);
+  else if (yaw < -PI) yaw += (2 * PI);
+  else if (yaw < 0) yaw += 2 * PI;
 
   // Convert everything from radians to degrees:
-  heading *= 180.0 / PI;
+  yaw *= 180.0 / PI;
   pitch *= 180.0 / PI;
   roll  *= 180.0 / PI;
 
-  int16_t i16roll, i16pitch, i16heading;
+  int16_t i16roll, i16pitch, i16yaw;
   i16roll = roll;
   i16pitch = pitch;
-  i16heading = heading;
+  i16yaw = yaw;
+
+  sprintf(imu_str,"y%3dyp%3dpr%3dr \n",i16yaw,i16pitch,i16roll);
+  printString(imu_str);
 
 //  UARTprintf("Pitch: %3d,",i16pitch);
 //  UARTprintf("Roll: %3d,",i16roll);
 //  UARTprintf("Heading: %3d",i16heading);
 //  UARTprintf(" @degree\n");
-  printInt(i16roll);
+//  printInt(i16roll);
 }
 
 

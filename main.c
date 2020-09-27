@@ -103,20 +103,6 @@ int main(void)
 
 
   volatile int pos,pos_deg, vel, vel_deg;
-//  float pos_f, vel_f;
-
-  //Initialize strings for bluetooth printing
-  char a[]="Encoder count (pulses):";
-  int len_a = sizeof(a);
-//
-  char b[]="Encoder count (degrees):";
-  int len_b = sizeof(b);
-//
-  char c[]="Encoder velocity (pulses):";
-  int len_c = sizeof(c);
-//
-  char d[]="Encoder velocity (degrees/sec):";
-  int len_d = sizeof(d);
 
 
   delayMs(3000);
@@ -129,19 +115,19 @@ int main(void)
 
 //    // Turn on the LED.
 //    //
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3);
-
-    //
-    // Delay for a bit.
-    delayMs(100);
-
-//     Turn off the BLUE LED.
-
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
-
-    delayMs(100);
+//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
+//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3);
+//
+//    //
+//    // Delay for a bit.
+//    delayMs(100);
+//
+////     Turn off the BLUE LED.
+//
+//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
+//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
+//
+//   delayMs(100);
 
     // Read position from encoder.
     //
@@ -165,7 +151,7 @@ int main(void)
     printQuaternion();
 
 //
-//    delayMs(500);//500ms
+    delayMs(10);
 
 //    //Print velocity (pulses)
 //    printString(c,len_c);

@@ -39,6 +39,7 @@
 
   }
 } */
+int8_t str_buffer[100];
 
 void
 //Using uart1 with interrupt enabled
@@ -74,28 +75,32 @@ ConfigureBluetoothUART(void)
 
 }
 
-void printString(char *string, int len){
+void printString(char *string){
 
   //char string[]="This is a test string.";
-  //int len = sizeof(string);
-  IntMasterDisable();
-  int buffer[50];
+  int len = 0;
+  memset(str_buffer, 0 , sizeof(str_buffer));
+//  int8_t str_buffer[100];
+//  IntMasterDisable();
 
-  int i=0,j;
-  while(string[i]!='\0') {
-    buffer[i]=string[i];
+
+  int i=0;
+  while(string[i]!='\n') {
+    str_buffer[i]=string[i];
     i++;
+    len++;
   }
 
+
   for(i=0;i<len-1;i++){
-    UARTCharPut(UART1_BASE,buffer[i]);
+    UARTCharPut(UART1_BASE,str_buffer[i]);
   }
 
   //Add newline (CR and LF)
-  UARTCharPut(UART1_BASE,10); //LF
-  UARTCharPut(UART1_BASE,13); //CR
+  UARTCharPut(UART1_BASE,10); //LF (\n)
+//  UARTCharPut(UART1_BASE,13); //CR
 
-  IntMasterEnable();
+//  IntMasterEnable();
 
 }
 

@@ -5,7 +5,7 @@
 #include "utils/uartstdio.h"
 
 void UART1IntHandler(void);
-void printString(char *string, int len);
+void printString(char *string);
 void printInt(int n);
 int intToASCII(int n, int * arr);
 void printFloat(int n, int d);
