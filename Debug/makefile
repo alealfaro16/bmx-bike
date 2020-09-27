@@ -15,6 +15,7 @@ ORDERED_OBJS += \
 "./libraries/bmx_bluetooth/bmx_bluetooth.obj" \
 "./libraries/bmx_encoder/bmx_encoder.obj" \
 "./libraries/bmx_esc/bmx_esc.obj" \
+"./libraries/bmx_imu/bmx_imu.obj" \
 "./libraries/bmx_imu/i2c.obj" \
 "./libraries/bmx_util/bmx_utilities.obj" \
 "./libraries/bmx_util/delay.obj" \
@@ -179,8 +180,8 @@ bmx_fall_2020.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "main.obj" "tm4c123gh6pm_startup_ccs.obj" "drivers/lsm9ds1/lsm9ds1.obj" "libraries/bmx_adc/adcInit.obj" "libraries/bmx_bluetooth/bmx_bluetooth.obj" "libraries/bmx_encoder/bmx_encoder.obj" "libraries/bmx_esc/bmx_esc.obj" "libraries/bmx_imu/i2c.obj" "libraries/bmx_util/bmx_utilities.obj" "libraries/bmx_util/delay.obj" "libraries/uartsdio/uartstdio.obj" 
-	-$(RM) "main.d" "tm4c123gh6pm_startup_ccs.d" "drivers/lsm9ds1/lsm9ds1.d" "libraries/bmx_adc/adcInit.d" "libraries/bmx_bluetooth/bmx_bluetooth.d" "libraries/bmx_encoder/bmx_encoder.d" "libraries/bmx_esc/bmx_esc.d" "libraries/bmx_imu/i2c.d" "libraries/bmx_util/bmx_utilities.d" "libraries/bmx_util/delay.d" "libraries/uartsdio/uartstdio.d" 
+	-$(RM) "main.obj" "tm4c123gh6pm_startup_ccs.obj" "drivers/lsm9ds1/lsm9ds1.obj" "libraries/bmx_adc/adcInit.obj" "libraries/bmx_bluetooth/bmx_bluetooth.obj" "libraries/bmx_encoder/bmx_encoder.obj" "libraries/bmx_esc/bmx_esc.obj" "libraries/bmx_imu/bmx_imu.obj" "libraries/bmx_imu/i2c.obj" "libraries/bmx_util/bmx_utilities.obj" "libraries/bmx_util/delay.obj" "libraries/uartsdio/uartstdio.obj" 
+	-$(RM) "main.d" "tm4c123gh6pm_startup_ccs.d" "drivers/lsm9ds1/lsm9ds1.d" "libraries/bmx_adc/adcInit.d" "libraries/bmx_bluetooth/bmx_bluetooth.d" "libraries/bmx_encoder/bmx_encoder.d" "libraries/bmx_esc/bmx_esc.d" "libraries/bmx_imu/bmx_imu.d" "libraries/bmx_imu/i2c.d" "libraries/bmx_util/bmx_utilities.d" "libraries/bmx_util/delay.d" "libraries/uartsdio/uartstdio.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

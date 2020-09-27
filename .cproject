@@ -87,7 +87,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="libraries/bmx_imu/bmx_quaternion.c|libraries/bmx_imu/bmx_imu.c|drivers/bno055|drivers/ili9341" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="old_main.c|libraries/bmx_imu/bmx_quaternion.c|drivers/bno055|drivers/ili9341" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

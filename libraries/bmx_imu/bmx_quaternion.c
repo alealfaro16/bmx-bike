@@ -5,6 +5,8 @@
 #include "bno055.h"
 #include "bmx_quaternion.h"
 
+/* BNO055 Functions */
+
 Quaternion bnoquat_to_float(struct bno055_quaternion_t *q)
 {
     Quaternion qf;

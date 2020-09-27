@@ -73,7 +73,6 @@ void IMU_readWHOAMI_M(uint8_t *ui8data){
 
 void IMU_init(void)
 {
-	I2C_Init();		//fast mode
 	{
 		device.commInterface = IMU_MODE_I2C;
 		//! TODO
@@ -446,16 +445,15 @@ uint8_t tempAvailable()
 
 	return ((status & (1<<2)) >> 2);
 }
-//! TODO
-//////////////////////////////////
 
-void readAccel()
+
+void readAccel(int16_t * ax, int16_t * ay, int16_t * az )
 {
 	uint8_t temp[6]; // We'll read six bytes from the accelerometer into temp
 	xgReadBytes(OUT_X_L_XL, temp, 6); // Read 6 bytes, beginning at OUT_X_L_XL
-	ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
-	ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
-	az = (temp[5] << 8) | temp[4]; // Store z-axis values into az
+	*ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
+	*ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
+	*az = (temp[5] << 8) | temp[4]; // Store z-axis values into az
 	//	if (_autoCalc)
 	//	{
 	//		ax -= aBiasRaw[X_AXIS];
@@ -464,13 +462,13 @@ void readAccel()
 	//	}
 }
 
-void readMag()
+void readMag(int16_t * mx, int16_t * my, int16_t * mz)
 {
 	uint8_t temp[6]; // We'll read six bytes from the mag into temp
 	mReadBytes(OUT_X_L_M, temp, 6); // Read 6 bytes, beginning at OUT_X_L_M
-	mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
-	my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
-	mz = (temp[5] << 8) | temp[4]; // Store z-axis values into mz
+	*mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
+	*my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
+	*mz = (temp[5] << 8) | temp[4]; // Store z-axis values into mz
 }
 
 void readTemp()

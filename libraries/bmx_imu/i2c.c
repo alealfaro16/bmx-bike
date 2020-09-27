@@ -37,7 +37,7 @@
  *
  * Return: none
  *****************************************************************************/
-void I2C_Init(void)
+void ConfigureI2C(void)
 {
     /*
          See section 15 and 17 of the TivaWare™ Peripheral Driver Library for more usage info.

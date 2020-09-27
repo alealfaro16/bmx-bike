@@ -38,6 +38,7 @@ main.obj: /home/alealfaro/bmx_bike/drivers/lsm9ds1/lsm9ds1.h
 main.obj: /home/alealfaro/bmx_bike/libraries/bmx_imu/i2c.h
 main.obj: /home/alealfaro/Embedded/tivaware/driverlib/adc.h
 main.obj: /home/alealfaro/Embedded/tivaware/inc/hw_ints.h
+main.obj: /home/alealfaro/bmx_bike/libraries/bmx_imu/bmx_imu.h
 main.obj: /home/alealfaro/bmx_bike/libraries/bmx_util/bmx_utilities.h
 main.obj: /home/alealfaro/bmx_bike/libraries/bmx_encoder/bmx_encoder.h
 main.obj: /home/alealfaro/bmx_bike/libraries/bmx_bluetooth/bmx_bluetooth.h
@@ -81,6 +82,7 @@ main.obj: /home/alealfaro/bmx_bike/libraries/bmx_util/delay.h
 /home/alealfaro/bmx_bike/libraries/bmx_imu/i2c.h: 
 /home/alealfaro/Embedded/tivaware/driverlib/adc.h: 
 /home/alealfaro/Embedded/tivaware/inc/hw_ints.h: 
+/home/alealfaro/bmx_bike/libraries/bmx_imu/bmx_imu.h: 
 /home/alealfaro/bmx_bike/libraries/bmx_util/bmx_utilities.h: 
 /home/alealfaro/bmx_bike/libraries/bmx_encoder/bmx_encoder.h: 
 /home/alealfaro/bmx_bike/libraries/bmx_bluetooth/bmx_bluetooth.h: 
