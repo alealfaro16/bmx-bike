@@ -13,6 +13,7 @@
 #include "driverlib/uart.h"
 
 #include "bmx_imu.h"
+#include "bmx_bluetooth.h"
 //#include "bno055.h"
 #include "lsm9ds1.h"
 #include <math.h>
@@ -115,10 +116,11 @@ void printQuaternion()//float ax, float ay, float az, float mx, float my, float 
   i16pitch = pitch;
   i16heading = heading;
 
-  UARTprintf("Pitch: %3d,",i16pitch);
-  UARTprintf("Roll: %3d,",i16roll);
-  UARTprintf("Heading: %3d",i16heading);
-  UARTprintf(" @degree\n");
+//  UARTprintf("Pitch: %3d,",i16pitch);
+//  UARTprintf("Roll: %3d,",i16roll);
+//  UARTprintf("Heading: %3d",i16heading);
+//  UARTprintf(" @degree\n");
+  printInt(i16roll);
 }
 
 

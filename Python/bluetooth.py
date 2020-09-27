@@ -8,8 +8,8 @@ import time
 
 #initialize serial port
 ser = serial.Serial()
-ser.port = '/dev/rfcomm0' #Arduino serial port
-ser.baudrate = 9600
+ser.port = '/dev/ttyUSB0' #Arduino serial port
+ser.baudrate = 38400
 ser.timeout = 10 #specify timeout when using readline()
 ser.open()
 

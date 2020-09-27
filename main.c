@@ -134,14 +134,14 @@ int main(void)
 
     //
     // Delay for a bit.
-    delayMs(500);
+    delayMs(100);
 
 //     Turn off the BLUE LED.
 
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 
-    delayMs(500);
+    delayMs(100);
 
     // Read position from encoder.
     //
@@ -158,14 +158,14 @@ int main(void)
 //    pos_deg = (int) pos_f*0.043945;// division doesn't work for some reason  (360/8192) = 0.043945
 //
 //    //Print counts (degrees)
-    printString(b,len_b);
+//    printString(b,len_b);
 //    UARTCharPut(UART1_BASE,10); //LF
 //    UARTCharPut(UART1_BASE,13); //CR
 //    printInt(pos_deg);
-//    printQuaternion();
+    printQuaternion();
 
 //
-    delayMs(500);//500ms
+//    delayMs(500);//500ms
 
 //    //Print velocity (pulses)
 //    printString(c,len_c);

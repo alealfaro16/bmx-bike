@@ -155,13 +155,29 @@ void printFloat(int n, int d){
 
 int intToASCII(int n, int * arr){
 
-      // Iterates from the least significant digit to the most significant
-      int len = 0;
-      do{
-       arr[len] = (n % 10) + 48;
-       n /= 10;
-       len++;
-     } while (n != 0);
 
-     return len;
+  // Iterates from the least significant digit to the most significant
+  int len = 0;
+  bool negative_n = false;
+  //add negative sign
+  if(n< 0)
+  {
+    negative_n = true;
+    n = -n;//convert to positive
+  }
+
+  do{
+   arr[len] = (n % 10) + 48;
+   n /= 10;
+   len++;
+ } while (n != 0);
+
+ //add negative sign
+ if(negative_n)
+ {
+   arr[len] = 45;
+   len++;
+ }
+
+ return len;
 }
