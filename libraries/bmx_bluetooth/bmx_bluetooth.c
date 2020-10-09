@@ -129,10 +129,10 @@ void printInt(int n){
 
 void printFloat(int n, int d){
 
-    IntMasterDisable();
+ IntMasterDisable();
 
-    int* buffer[10];
-   int len = intToASCII(n,buffer);
+  int* buffer[10];
+  int len = intToASCII(n,buffer);
 
   int i;
   //Print number

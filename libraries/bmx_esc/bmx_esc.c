@@ -13,20 +13,14 @@
 #include "driverlib/timer.h"
 #include "bmx_esc.h"
 
-volatile uint32_t pwmOut = 4766;
 
-// 0.025ms dead-band = 156 counts out of 125000
-// Forward actual starting point = 9375 + 156 = 9531
-// Reverse actual starting point = 9375 - 156 = 9219
-//4688+78=4766
-//4688-78=4610
-// 5%=3125
-// 7.5% = 4688
+
 // 6250-(62500*0.025*0.85) =4922
 // 3125+(62500*0.025*0.85) =4453
 
 int upFlag = 1;
 volatile int flag = 0;
+volatile uint32_t pwm_width_in_ticks = NEUTRAL_TICKS;
 
 static void triangleSignal(void)
 {
@@ -35,48 +29,49 @@ static void triangleSignal(void)
     TimerIntClear(TIMER0_BASE,status);
     if (flag==1)
     {
-        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, pwmOut-60);
-        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, pwmOut-60);
+        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, pwm_width_in_ticks-60);
+        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, pwm_width_in_ticks-60);
     //}
-        UARTprintf("pwm: %d     ",pwmOut);
-        if (pwmOut == 4922)
+        UARTprintf("pwm: %d     ",pwm_width_in_ticks);
+        if (pwm_width_in_ticks == 4922)
         {
             upFlag = 0;
         }
-        if (pwmOut == 4453)
+        if (pwm_width_in_ticks == 4453)
         {
             upFlag = 1;
         }
 
-        if (pwmOut > 4766 && pwmOut <= 4922 || pwmOut == 4766)
+        if (pwm_width_in_ticks > 4766 && pwm_width_in_ticks <= 4922 || pwm_width_in_ticks == 4766)
         {
             if (upFlag == 1)
             {
-                pwmOut++;
+                pwm_width_in_ticks++;
             }
-            else if (pwmOut == 4766 && upFlag == 0)
+            else if (pwm_width_in_ticks == 4766 && upFlag == 0)
             {
-                pwmOut = 4610;
+                pwm_width_in_ticks = 4610;
             }
             else
             {
-                pwmOut = pwmOut - 1;
+//                pwmOut = pwmOut - 1;
+                pwm_width_in_ticks--;
             }
 
         }
-        else if (pwmOut >= 4453 && pwmOut < 4610 || pwmOut == 4610)
+        else if (pwm_width_in_ticks >= 4453 && pwm_width_in_ticks < 4610 || pwm_width_in_ticks == 4610)
         {
             if (upFlag == 0)
             {
-                pwmOut = pwmOut - 1;
+                pwm_width_in_ticks--;
             }
-            else if (pwmOut == 4610 && upFlag == 1)
+            else if (pwm_width_in_ticks == 4610 && upFlag == 1)
             {
-                pwmOut = 4766;
+                pwm_width_in_ticks = 4766;
             }
             else
             {
-                pwmOut++;
+                pwm_width_in_ticks++;
             }
         }
     }
@@ -86,7 +81,7 @@ static void triangleSignal(void)
 static void ConfigurePWM(void)
 {
     // Divide the system frequency by 8.
-    SysCtlPWMClockSet(SYSCTL_PWMDIV_16);
+    SysCtlPWMClockSet(PWM_SYSCLK_DIVIDER);
 
     // Tiva has 2 PWM modules
     // Each module has 4 PWM generators
@@ -118,16 +113,14 @@ static void ConfigurePWM(void)
     // N = (1 / f) * SysClk.  Where N is the PWMGenPeriodSet
     // function parameter, f is the desired frequency, and SysClk is the
     // PWM clock frequency after this function.
+    // DIV =16, N = 62500
     // DIV = 8, N = 125000
     // DIV = 4, N = 250000 and so on
-    // 5% duty cycle of 125000 is 6250 (FULL REVERSE)
-    // 7.5% duty cycle of 125000 is 9375 (NEUTRAL)
-    // 10% duty cycle  of 125000 is 12500 (FULL FORWARD)
-    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, 62500);
+    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, PWM_N_TICKS);
 
     // Set the pulse width of PWM2 and PWM3 for a 7.5% duty cycle.
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 4688);
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4688);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, NEUTRAL_TICKS);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, NEUTRAL_TICKS);
 
     // Start the timers in generator 1.
     PWMGenEnable(PWM0_BASE, PWM_GEN_1);

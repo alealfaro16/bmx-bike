@@ -4,4 +4,4 @@ Makefile
 /BNO055_driver/*
 /pololu_imu/*
 /IMU_math/*
-/Debug/
+/Debug/*

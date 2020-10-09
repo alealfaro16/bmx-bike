@@ -93,16 +93,16 @@ int main(void)
   InitializeTiva();
 
   uint8_t rev_data[10];
-  IMU_init();
-  while(!(LSM9DS1_begin())){};
-//  initAccel();
+//  IMU_init();
+//  while(!(LSM9DS1_begin())){};
+////  initAccel();
+//
+//  IMU_readWHOAMI_AG(&rev_data[0]);
+//  IMU_readWHOAMI_M(&rev_data[1]);
+//  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
 
-  IMU_readWHOAMI_AG(&rev_data[0]);
-  IMU_readWHOAMI_M(&rev_data[1]);
-  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
 
-
-  volatile int pos,pos_deg, vel, vel_deg;
+  volatile int pos,pos_deg, vel, vel_deg, dir;
 
 
   delayMs(3000);
@@ -110,60 +110,47 @@ int main(void)
 
   //start ESC signal
 //  startESCSignal();
+  UARTprintf("Start forward ticks = %d\n", FORWARD_START_TICKS);
+  UARTprintf("Start reverse ticks = %d\n", REVERSE_START_TICKS);
+  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, FORWARD_START_TICKS + 100);
+//  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, REVERSE_START_TICKS - 400);
   while(1)
   {
 
 //    // Turn on the LED.
 //    //
-//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
-//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3);
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3);
 //
 //    //
 //    // Delay for a bit.
-//    delayMs(100);
+    delayMs(500);
 //
 ////     Turn off the BLUE LED.
 //
-//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
-//    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 //
-//   delayMs(100);
+   delayMs(500);
 
     // Read position from encoder.
     //
-//    pos = QEIPositionGet(QEI0_BASE);
-//    vel = QEIVelocityGet(QEI0_BASE);
+    pos = QEIPositionGet(QEI0_BASE);
+    vel = QEIVelocityGet(QEI0_BASE);
+    dir = QEIDirectionGet(QEI0_BASE);
 
-
-    //Print counts (pulses)
-//    printString(a,len_a);
-//      printInt(pos);
-//     UARTprintf("pos = %d \n", pos);
-////
-//    pos_f = (float) pos;
-//    pos_deg = (int) pos_f*0.043945;// division doesn't work for some reason  (360/8192) = 0.043945
 //
-//    //Print counts (degrees)
-//    printString(b,len_b);
-//    UARTCharPut(UART1_BASE,10); //LF
-//    UARTCharPut(UART1_BASE,13); //CR
 //    printInt(pos_deg);
-    printQuaternion();
+//    printQuaternion();
 
 //
-    delayMs(10);
-
-//    //Print velocity (pulses)
-//    printString(c,len_c);
-//    printInt(vel);
-//    UARTprintf("vel = %d \n", vel);
+//    delayMs(500);
+    pos_deg = (int) pos*0.043945;// division doesn't work for some reason  (360/8192) = 0.043945
+    vel_deg = (int) vel*0.043945;// division doesn't work for some reason
+    UARTprintf("pos = %d \n", pos_deg);
+    UARTprintf("vel = %d \n", vel_deg*dir);
 //
 //
-//    //Print velocity (degrees)
-//    vel_f = (float) vel;
-//    vel_deg = (int) vel_f*0.043945;// division doesn't work for some reason
-//    printString(d,len_d);
-//    printInt(vel_deg);
 //
 
 

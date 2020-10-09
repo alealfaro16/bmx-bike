@@ -119,6 +119,7 @@ void printQuaternion()//float ax, float ay, float az, float mx, float my, float 
   i16yaw = yaw;
 
   sprintf(imu_str,"y%3dyp%3dpr%3dr \n",i16yaw,i16pitch,i16roll);
+//  sprintf(imu_str,"y%fyp%fpr%fr \n",i16yaw,i16pitch,i16roll);
   printString(imu_str);
 
 //  UARTprintf("Pitch: %3d,",i16pitch);
