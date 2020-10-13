@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>bmx_fall_2020</name>
+	<name>bmx_macos</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -28,13 +28,13 @@
 		<link>
 			<name>driverlib.lib</name>
 			<type>1</type>
-			<locationURI>tivaware/driverlib/ccs/Debug/driverlib.lib</locationURI>
+			<locationURI>Tivaware/driverlib/ccs/Debug/driverlib.lib</locationURI>
 		</link>
 	</linkedResources>
 	<variableList>
 		<variable>
-			<name>tivaware</name>
-			<value>file:/home/alealfaro/Embedded/tivaware</value>
+			<name>Tivaware</name>
+			<value>file:/Users/alealfaro/Documents/Tivaware</value>
 		</variable>
 	</variableList>
 </projectDescription>

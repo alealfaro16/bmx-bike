@@ -1,4 +1,4 @@
-#include <bmx_esc.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -33,7 +33,6 @@
 #include "bmx_utilities.h"
 #include "bmx_encoder.h"
 #include "bmx_bluetooth.h"
-#include "delay.h"
 
 
 void ConfigureUART()
@@ -65,6 +64,7 @@ void InitializeTiva()
   FPULazyStackingEnable();
 
   // Set the clocking to run directly from the crystal.
+  //SysClock runs at 200MHz normally and is being divided by 4 to give 50MHz Sysclk
   SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
 
 
@@ -102,18 +102,12 @@ int main(void)
 //  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
 
 
-  volatile int pos,pos_deg, vel, vel_deg, dir;
-
-
   delayMs(3000);
   GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
   //start ESC signal
-//  startESCSignal();
-  UARTprintf("Start forward ticks = %d\n", FORWARD_START_TICKS);
-  UARTprintf("Start reverse ticks = %d\n", REVERSE_START_TICKS);
-  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, FORWARD_START_TICKS + 100);
-//  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, REVERSE_START_TICKS - 400);
+  RPMtoESCSignal(-150);
+
   while(1)
   {
 
@@ -126,32 +120,12 @@ int main(void)
 //    // Delay for a bit.
     delayMs(500);
 //
-////     Turn off the BLUE LED.
+// Turn off the LED.
 //
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 //
    delayMs(500);
-
-    // Read position from encoder.
-    //
-    pos = QEIPositionGet(QEI0_BASE);
-    vel = QEIVelocityGet(QEI0_BASE);
-    dir = QEIDirectionGet(QEI0_BASE);
-
-//
-//    printInt(pos_deg);
-//    printQuaternion();
-
-//
-//    delayMs(500);
-    pos_deg = (int) pos*0.043945;// division doesn't work for some reason  (360/8192) = 0.043945
-    vel_deg = (int) vel*0.043945;// division doesn't work for some reason
-    UARTprintf("pos = %d \n", pos_deg);
-    UARTprintf("vel = %d \n", vel_deg*dir);
-//
-//
-//
 
 
   }

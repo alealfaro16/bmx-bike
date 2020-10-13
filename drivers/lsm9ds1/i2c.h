@@ -48,5 +48,6 @@ void I2C_Write(uint32_t ui32Base, unsigned char uiSlave_add, unsigned char *ucDa
 		uint16_t uiCount, unsigned char ucStart_add );
 void I2C_Read(uint32_t ui32Base, unsigned char uiSlave_add, unsigned char *ucRec_Data,
 		uint16_t uiCount, unsigned char ucStart_add, bool bDummyRead);
+void ConfigureI2C(void);
 //*****************************************************************************
 #endif	/* I2C_H_ */

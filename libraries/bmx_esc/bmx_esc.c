@@ -11,70 +11,32 @@
 #include "driverlib/pwm.h"
 #include "driverlib/gpio.h"
 #include "driverlib/timer.h"
+#include "driverlib/qei.h"
+
 #include "bmx_esc.h"
 
+#include "utils/uartstdio.h"
+
+volatile int pos, vel, vel_rpm, prev_vel_rpm = 0, dir;
+
+float A = 0.5;
+float B = 0.5;
 
 
-// 6250-(62500*0.025*0.85) =4922
-// 3125+(62500*0.025*0.85) =4453
-
-int upFlag = 1;
-volatile int flag = 0;
-volatile uint32_t pwm_width_in_ticks = NEUTRAL_TICKS;
-
-static void triangleSignal(void)
+static void ESCSignal(void)
 {
     uint32_t status=0;
     status = TimerIntStatus(TIMER0_BASE,true);
     TimerIntClear(TIMER0_BASE,status);
-    if (flag==1)
-    {
-        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, pwm_width_in_ticks-60);
-        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, pwm_width_in_ticks-60);
-    //}
-        UARTprintf("pwm: %d     ",pwm_width_in_ticks);
-        if (pwm_width_in_ticks == 4922)
-        {
-            upFlag = 0;
-        }
-        if (pwm_width_in_ticks == 4453)
-        {
-            upFlag = 1;
-        }
+    // Read position from encoder.
+    //
+    pos = QEIPositionGet(QEI0_BASE);
+    vel = QEIVelocityGet(QEI0_BASE);
+    dir = QEIDirectionGet(QEI0_BASE);
 
-        if (pwm_width_in_ticks > 4766 && pwm_width_in_ticks <= 4922 || pwm_width_in_ticks == 4766)
-        {
-            if (upFlag == 1)
-            {
-                pwm_width_in_ticks++;
-            }
-            else if (pwm_width_in_ticks == 4766 && upFlag == 0)
-            {
-                pwm_width_in_ticks = 4610;
-            }
-            else
-            {
-//                pwmOut = pwmOut - 1;
-                pwm_width_in_ticks--;
-            }
-
-        }
-        else if (pwm_width_in_ticks >= 4453 && pwm_width_in_ticks < 4610 || pwm_width_in_ticks == 4610)
-        {
-            if (upFlag == 0)
-            {
-                pwm_width_in_ticks--;
-            }
-            else if (pwm_width_in_ticks == 4610 && upFlag == 1)
-            {
-                pwm_width_in_ticks = 4766;
-            }
-            else
-            {
-                pwm_width_in_ticks++;
-            }
-        }
-    }
+    vel_rpm = (int) vel*0.007324*A + B*prev_vel_rpm; //(60/8192)
+    prev_vel_rpm = vel_rpm;
+    UARTprintf("vel = %d rpm \n", vel_rpm*dir);
 
 }
 
@@ -133,9 +95,7 @@ static void ConfigurePWM(void)
 static void ConfigureESCSignalISR(void (*f)(void))
 {
     uint32_t period;
-    uint32_t period2;
-    period = 500000; //1s
-    period2 = 50000;
+    period = 50000000; //1s
 
     // 5 regular 16/32 bit timer block, 5 wide 32/64 bit timer block
     // Each timer block has timer output A and B
@@ -190,8 +150,27 @@ static void ConfigureESCSignalISR(void (*f)(void))
 
 void ConfigureESCSignal(void){
     ConfigurePWM();
-    ConfigureESCSignalISR(triangleSignal);
+    ConfigureESCSignalISR(ESCSignal);
 }
-void startESCSignal(void){
-    flag=1;
+
+void RPMtoESCSignal(int16_t rpm){
+
+  uint16_t ticks;
+
+  if(rpm >0)
+  {
+     ticks = FORWARD_A*rpm + FORWARD_B;
+
+  }
+  else
+  {
+      ticks = REVERSE_A*rpm+ REVERSE_B;
+
+  }
+
+  //Set PWM to the desired speed
+  UARTprintf("ticks = %d \n", ticks);
+  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, ticks);
+
 }
+

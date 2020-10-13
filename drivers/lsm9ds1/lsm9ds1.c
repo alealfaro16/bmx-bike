@@ -478,13 +478,13 @@ void readTemp()
 	temperature = ((int16_t)temp[1] << 8) | temp[0];
 }
 
-void readGyro()
+void readGyro(int16_t * gx, int16_t * gy, int16_t * gz)
 {
 	uint8_t temp[6]; // We'll read six bytes from the gyro into temp
 	xgReadBytes(OUT_X_L_G, temp, 6); // Read 6 bytes, beginning at OUT_X_L_G
-	gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
-	gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
-	gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
+	*gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
+	*gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
+	*gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
 	//	if (_autoCalc)
 	//	{
 	//		gx -= gBiasRaw[X_AXIS];

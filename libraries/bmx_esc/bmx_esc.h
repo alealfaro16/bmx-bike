@@ -29,11 +29,20 @@
 // Forward actual starting point = 4688+78=4766
 // Reverse actual starting point = 4688-78=4610
 #define DEADBAND_TICKS  78
-#define FORWARD_START_TICKS  (NEUTRAL_TICKS + DEADBAND_TICKS)
-#define REVERSE_START_TICKS  (NEUTRAL_TICKS - DEADBAND_TICKS)
+#define FORWARD_START_TICKS  4786//Empirically found, the theoretical (NEUTRAL_TICKS + DEADBAND_TICKS) does not work
+#define REVERSE_START_TICKS  4560//Empirically found, the theoretical (NEUTRAL_TICKS - DEADBAND_TICKS) does not work
+
+//PWM duty cycle to Speed Coefficients (Empirically calculated)
+#define FORWARD_A 0.25
+#define FORWARD_B 4784
+
+#define REVERSE_A 0.326
+#define REVERSE_B 4573
+
 
 //Configures a PWM
 void ConfigureESCSignal(void);
-void startESCSignal(void);
+
+void RPMtoESCSignal(int16_t rpm);
 
 #endif /* BMX_ESC_H */

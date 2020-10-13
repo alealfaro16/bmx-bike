@@ -5,3 +5,4 @@ Makefile
 /pololu_imu/*
 /IMU_math/*
 /Debug/*
+/Debug/
