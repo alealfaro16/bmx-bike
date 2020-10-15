@@ -14,13 +14,21 @@
 #include "driverlib/qei.h"
 
 #include "bmx_esc.h"
+#include "bmx_imu.h"
 
 #include "utils/uartstdio.h"
 
 volatile int pos, vel, vel_rpm, prev_vel_rpm = 0, dir;
+volatile bool PIDOn = false;
 
 float A = 0.5;
 float B = 0.5;
+
+int16_t roll, pitch, yaw, prev_roll; //IMU angles
+int16_t rpm;
+
+int16_t sum_of_error = 0, prev_error = 0, derror = 0, dt = 1;//dt = 1s
+float Kp = 3, Ki =4, Kd = 3;
 
 
 static void ESCSignal(void)
@@ -30,17 +38,39 @@ static void ESCSignal(void)
     TimerIntClear(TIMER0_BASE,status);
     // Read position from encoder.
     //
-    pos = QEIPositionGet(QEI0_BASE);
-    vel = QEIVelocityGet(QEI0_BASE);
-    dir = QEIDirectionGet(QEI0_BASE);
+//    pos = QEIPositionGet(QEI0_BASE);
+//    vel = QEIVelocityGet(QEI0_BASE);
+//    dir = QEIDirectionGet(QEI0_BASE);
+//
+//    vel_rpm = (int) vel*0.007324*A + B*prev_vel_rpm; //(60/8192)
+//    prev_vel_rpm = vel_rpm;
+//    UARTprintf("vel = %d rpm \n", vel_rpm*dir);
+    if(PIDOn)
+    {
+        //Get IMU data
+        getIMUData(&roll, &pitch, &yaw);
 
-    vel_rpm = (int) vel*0.007324*A + B*prev_vel_rpm; //(60/8192)
-    prev_vel_rpm = vel_rpm;
-    UARTprintf("vel = %d rpm \n", vel_rpm*dir);
+        //Roll used with PID controller to control MW speed
+        sum_of_error = roll*dt;
+        derror = (roll - prev_error)/dt;
+
+        rpm = Kp*roll + Ki*sum_of_error;
+        RPMtoESCSignal(rpm);
+    }
 
 }
 
-static void ConfigurePWM(void)
+void turnPIDMW(bool state)
+{
+    PIDOn = state;
+}
+
+void getRPM(int16_t * rpm_str)
+{
+   *rpm_str = rpm;
+}
+
+void ConfigurePWM(void)
 {
     // Divide the system frequency by 8.
     SysCtlPWMClockSet(PWM_SYSCLK_DIVIDER);
@@ -92,7 +122,7 @@ static void ConfigurePWM(void)
 
 }
 
-static void ConfigureESCSignalISR(void (*f)(void))
+void ConfigureESCSignalISR(void)
 {
     uint32_t period;
     period = 50000000; //1s
@@ -124,7 +154,7 @@ static void ConfigureESCSignalISR(void (*f)(void))
 
     //Link the timer0,A and the ISR together
     // ISR is the your routine function
-    TimerIntRegister(TIMER0_BASE, TIMER_A, *f);
+    TimerIntRegister(TIMER0_BASE, TIMER_A, ESCSignal);
 
     //Enable interrupt on timer 0A
     IntEnable(INT_TIMER0A);
@@ -132,32 +162,15 @@ static void ConfigureESCSignalISR(void (*f)(void))
     //Enable timer interrupt
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
-
-//    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
-//    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER5))
-//    {
-//    }
-//    TimerConfigure(TIMER5_BASE, TIMER_CFG_PERIODIC);
-//    TimerLoadSet(TIMER5_BASE, TIMER_A, period2 -1);
-//
-//    TimerIntRegister(TIMER5_BASE, TIMER_A, *ff);
-//
-//    TimerIntEnable(TIMER5_BASE, TIMER_TIMA_TIMEOUT);
-//
-//    TimerEnable(TIMER5_BASE, TIMER_A);
-
 }
 
-void ConfigureESCSignal(void){
-    ConfigurePWM();
-    ConfigureESCSignalISR(ESCSignal);
-}
 
-void RPMtoESCSignal(int16_t rpm){
+void RPMtoESCSignal(int16_t speed){
 
   uint16_t ticks;
+  rpm = speed;
 
-  if(rpm >0)
+  if(speed >0)
   {
      ticks = FORWARD_A*rpm + FORWARD_B;
 

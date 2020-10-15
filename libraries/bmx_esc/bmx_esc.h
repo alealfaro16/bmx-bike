@@ -41,8 +41,10 @@
 
 
 //Configures a PWM
-void ConfigureESCSignal(void);
-
-void RPMtoESCSignal(int16_t rpm);
+void ConfigurePWM(void);
+void ConfigureESCSignalISR(void);
+void RPMtoESCSignal(int16_t speed);
+void getRPM(int16_t * rpm_str);
+void turnPIDMW(bool state);
 
 #endif /* BMX_ESC_H */

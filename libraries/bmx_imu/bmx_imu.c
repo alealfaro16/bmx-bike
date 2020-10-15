@@ -13,6 +13,8 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
+#include "driverlib/timer.h"
+#include "driverlib/interrupt.h"
 
 #include "utils/uartstdio.h"
 
@@ -21,13 +23,13 @@
 //#include "bno055.h"
 #include "lsm9ds1.h"
 
-//int16_t gx, gy, gz; // x, y, and z axis readings of the gyroscope
-//int16_t ax, ay, az; // x, y, and z axis readings of the accelerometer
-//int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
+int16_t gx, gy, gz; // x, y, and z axis readings of the gyroscope
+int16_t ax, ay, az; // x, y, and z axis readings of the accelerometer
+int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
+int16_t i16roll, i16pitch, i16yaw; //IMU angles
 //int16_t temperature; // Chip temperature
 
 const float PI = 3.14159265358979323846;
-char imu_str[100];
 
 /* LSM9DS1 Functions */
 
@@ -90,10 +92,9 @@ void printMag()
 // http://cache.freescale.com/files/sensors/doc/app_note/AN3461.pdf?fpsp=1
 // Heading calculations taken from this app note:
 // http://www51.honeywell.com/aero/common/documents/myaerospacecatalog-documents/Defense_Brochures-documents/Magnetic__Literature_Application_notes-documents/AN203_Compass_Heading_Using_Magnetometers.pdf
-void printQuaternion()//float ax, float ay, float az, float mx, float my, float mz)
+static void readQuaternion()
 {
-  int16_t  ax, ay, az; // x, y, and z axis readings of the accelerometer
-  int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
+
 
   readAccel(&ax, &ay, &az);
   readMag(&mx, &my, &mz);
@@ -118,19 +119,74 @@ void printQuaternion()//float ax, float ay, float az, float mx, float my, float 
   pitch *= 180.0 / PI;
   roll  *= 180.0 / PI;
 
-  int16_t i16roll, i16pitch, i16yaw;
   i16roll = roll;
   i16pitch = pitch;
   i16yaw = yaw;
 
-  sprintf(imu_str,"y%3dyp%3dpr%3dr \n",i16yaw,i16pitch,i16roll);
+//  sprintf(imu_str,"y%3dyp%3dpr%3dr \n",i16yaw,i16pitch,i16roll);
 //  sprintf(imu_str,"y%fyp%fpr%fr \n",i16yaw,i16pitch,i16roll);
-  printString(imu_str);
+//  printString(imu_str);
 
-//  UARTprintf("Pitch: %3d,",i16pitch);
-//  UARTprintf("Roll: %3d,",i16roll);
-//  UARTprintf("Heading: %3d",i16heading);
-//  UARTprintf(" @degree\n");
+//  UARTprintf("Pitch: %3d\n",i16pitch);
+//  UARTprintf("Roll: %3d\n",i16roll);
+//  UARTprintf("Heading: %3d\n",i16yaw);
+
 //  printInt(i16roll);
 }
 
+static void ImuReadData(void)
+{
+    uint32_t status=0;
+    status = TimerIntStatus(TIMER5_BASE,true);
+    TimerIntClear(TIMER5_BASE,status);
+
+    // Read IMU quaternions.
+    readQuaternion();
+
+}
+
+void getIMUData(int16_t * roll, int16_t * pitch, int16_t * yaw)
+{
+    *roll = i16roll;
+    *pitch = i16pitch;
+    *yaw = i16yaw;
+}
+
+void ConfigureIMUISR(void)
+{
+    uint32_t period;
+    period = 5000000; //100ms
+
+
+    // Enable 16/32 bit Timer 0
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER5))
+    {
+    }
+
+    // TIMER_CFG_PERIODIC means full-width periodic
+    TimerConfigure(TIMER5_BASE, TIMER_CFG_PERIODIC);
+
+    // Timer load set
+    // !! WARNGING !!
+    // DO NOT USE SysCtlClockGet() TO SET THE PERIOD
+    // IT WILL NOT WORK AS INTENDED, USE THE period VARIABLE INSTEAD
+
+    TimerLoadSet(TIMER5_BASE, TIMER_A, period-1);
+
+    //Enable timer 0A
+    TimerEnable(TIMER5_BASE, TIMER_A);
+
+    //Configuration for timer based interrupt if needed
+
+    //Link the timer0,A and the ISR together
+    // ISR is the your routine function
+    TimerIntRegister(TIMER5_BASE, TIMER_A, ImuReadData);
+
+    //Enable interrupt on timer 0A
+    IntEnable(INT_TIMER5A);
+
+    //Enable timer interrupt
+    TimerIntEnable(TIMER5_BASE, TIMER_TIMA_TIMEOUT);
+
+}

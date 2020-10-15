@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "inc/hw_gpio.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -9,37 +10,14 @@
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/interrupt.h"
 #include "bmx_bluetooth.h"
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
 
-//UART interrupt handler. Put the function prototype with the "extern" attribute in startup_gcc
-// and change the handler name in the interrupt map to make the handlers work
-/*void UART1IntHandler(void) {
 
-  uint32_t ui32Status;
-  uint32_t  intChar;
-  int8_t cChar;
-  ui32Status = UARTIntStatus(UART1_BASE, true); //get interrupt status
-  UARTIntClear(UART1_BASE, ui32Status); //clear the asserted interrupts
-  while(UARTCharsAvail(UART1_BASE))
-  {
-    //intChar = UARTCharGetNonBlocking(UART1_BASE);
-    //cChar = (unsigned char)(intChar & 0xFF);
-    //UARTCharPutNonBlocking(UART1_BASE, intChar); //echo character
 
-    //if(cChar == 'pose'){
-
-    //  UARTCharPutNonBlocking(UART1_BASE, pos);
-    //}
-    //else if(cChar == '0'){
-
-    //  GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
-    //}
-
-  }
-} */
-int8_t str_buffer[100];
+int8_t tx_buffer[100];
 
 void
 //Using uart1 with interrupt enabled
@@ -69,31 +47,32 @@ ConfigureBluetoothUART(void)
 
     // UARTEchoSet(true);
 
-    /*IntMasterEnable(); //enable processor interrupts
+    //IntMasterEnable(); //enable processor interrupts
     IntEnable(INT_UART1); //enable the UART interrupt
-    UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT); *///only enable RX and TX interrupt
+    UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT); ///only enable RX and TX interrupt
 
 }
 
-void printString(char *string){
+
+void printBLEString(char *string){
 
   //char string[]="This is a test string.";
   int len = 0;
-  memset(str_buffer, 0 , sizeof(str_buffer));
+  memset(tx_buffer, 0 , sizeof(tx_buffer));
 //  int8_t str_buffer[100];
 //  IntMasterDisable();
 
 
   int i=0;
   while(string[i]!='\n') {
-    str_buffer[i]=string[i];
+    tx_buffer[i]=string[i];
     i++;
     len++;
   }
 
 
   for(i=0;i<len-1;i++){
-    UARTCharPut(UART1_BASE,str_buffer[i]);
+    UARTCharPut(UART1_BASE,tx_buffer[i]);
   }
 
   //Add newline (CR and LF)
@@ -104,11 +83,11 @@ void printString(char *string){
 
 }
 
-void printInt(int n){
+void printBLEInt(int16_t n){
 
 
   IntMasterDisable();
-  int* buffer[10];
+  int buffer[10];
   int len = intToASCII(n,buffer);
 
   int i;
@@ -127,11 +106,11 @@ void printInt(int n){
 
 }
 
-void printFloat(int n, int d){
+void printBLEFloat(int n, int d){
 
  IntMasterDisable();
 
-  int* buffer[10];
+  int buffer[10];
   int len = intToASCII(n,buffer);
 
   int i;

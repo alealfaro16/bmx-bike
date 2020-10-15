@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 #include "inc/hw_gpio.h"
 #include "inc/hw_i2c.h"
@@ -34,6 +35,12 @@
 #include "bmx_encoder.h"
 #include "bmx_bluetooth.h"
 
+char imu_str[150];
+int16_t roll_str, pitch_str, yaw_str; //IMU angles
+int16_t rpm_str = 0;
+char rx_buffer[100];
+
+volatile bool streaming_data = false;
 
 void ConfigureUART()
 {
@@ -54,6 +61,71 @@ void ConfigureUART()
 
     // Initialize the UART for console I/O.
     UARTStdioConfig(0, 115200, 16000000);
+}
+
+//UART interrupt handler. Put the function prototype with the "extern" attribute in startup_gcc
+// and change the handler name in the interrupt map to make the handlers work
+void UART1IntHandler(void)
+{
+    unsigned long ulStatus;
+    static uint16_t index = 0;
+    ulStatus = UARTIntStatus(UART1_BASE, true); //get interrupt status
+    UARTIntClear(UART1_BASE, ulStatus); //clear the asserted interrupts
+
+    while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
+    {
+//    UARTCharPutNonBlocking(UART1_BASE, UARTCharGetNonBlocking(UART1_BASE));
+//    //echo character
+        rx_buffer[index] = UARTCharGetNonBlocking(UART1_BASE);
+//        UARTCharPutNonBlocking(UART1_BASE, rx_buffer[index]);
+        index++;
+    }
+
+    if(rx_buffer[index-1] == '\n' || (rx_buffer[index-1] == '\r'))
+    {
+        //Parse bool argument
+        char * token;
+        token = strtok(rx_buffer,";");
+        token = strtok(NULL, ";");
+
+        if(strstr(rx_buffer, "balance") != NULL)
+        {
+
+            if(strstr(token, "on") != NULL){
+
+                printBLEString("balance on \n");
+                turnPIDMW(true);
+            }
+            else if(strstr(token, "off") != NULL){
+
+                printBLEString("balance off \n");
+                turnPIDMW(false);
+            }
+
+        }
+        else if(strstr(rx_buffer, "stream") != NULL)
+        {
+            if(strstr(token, "on") != NULL){
+
+                printBLEString("stream on \n");
+                streaming_data = true;
+            }
+            else if(strstr(token, "off") != NULL){
+
+                printBLEString("stream off \n");
+                streaming_data = false;
+            }
+
+        }
+        else if(strstr(rx_buffer, "stop") != NULL)
+        {
+            //Turn off control and send neutral signal to ESC
+            turnPIDMW(false);
+            RPMtoESCSignal(0);
+        }
+        index  = 0;
+    }
+
 }
 
 void InitializeTiva()
@@ -82,7 +154,12 @@ void InitializeTiva()
   ConfigureBluetoothUART();
   ConfigureQEI();
   ConfigureQEIVel();
-  ConfigureESCSignal();
+  ConfigurePWM();
+
+  //Configure ISRs
+  ConfigureIMUISR(); //called every 100ms
+  ConfigureESCSignalISR(); //called every 1s
+
 }
 
 
@@ -93,20 +170,20 @@ int main(void)
   InitializeTiva();
 
   uint8_t rev_data[10];
-//  IMU_init();
-//  while(!(LSM9DS1_begin())){};
-////  initAccel();
-//
-//  IMU_readWHOAMI_AG(&rev_data[0]);
-//  IMU_readWHOAMI_M(&rev_data[1]);
-//  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
+  IMU_init();
+  while(!(LSM9DS1_begin())){};
+//  initAccel();
+
+  IMU_readWHOAMI_AG(&rev_data[0]);
+  IMU_readWHOAMI_M(&rev_data[1]);
+  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
 
 
   delayMs(3000);
   GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
   //start ESC signal
-  RPMtoESCSignal(-150);
+//  RPMtoESCSignal(-150);
 
   while(1)
   {
@@ -118,14 +195,22 @@ int main(void)
 //
 //    //
 //    // Delay for a bit.
-    delayMs(500);
+    delayMs(100);
+
+    if(streaming_data)
+    {
+        getIMUData(&roll_str, &pitch_str, &yaw_str);
+        getRPM(&rpm_str);
+        sprintf(imu_str,"y%3dyp%3dpr%3drs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
+        printBLEString(imu_str);
+    }
 //
 // Turn off the LED.
 //
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 //
-   delayMs(500);
+   delayMs(100);
 
 
   }

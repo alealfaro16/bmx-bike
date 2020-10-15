@@ -5,10 +5,10 @@
 #include "utils/uartstdio.h"
 
 void UART1IntHandler(void);
-void printString(char *string);
-void printInt(int n);
+void printBLEString(char *string);
+void prinBLEtInt(int16_t n);
 int intToASCII(int n, int * arr);
-void printFloat(int n, int d);
+void printBLEFloat(int n, int d);
 void ConfigureBluetoothUART(void);
 
 #endif // ____BLUETOOTH_H____
