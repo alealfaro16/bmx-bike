@@ -41,11 +41,9 @@ int16_t roll_str, pitch_str, yaw_str; //IMU angles
 //float roll_str, pitch_str, yaw_str; //IMU angles
 int euler_ang_str[3];
 int16_t rpm_str = 0;
-char rx_buffer[100];
 
-volatile bool streaming_data = false;
 
-void ConfigureUART()
+void ConfigureTivaUART()
 {
 
     // Enable the GPIO Peripheral used by the UART.
@@ -66,72 +64,6 @@ void ConfigureUART()
     UARTStdioConfig(0, 115200, 16000000);
 }
 
-//UART interrupt handler. Put the function prototype with the "extern" attribute in startup_gcc
-// and change the handler name in the interrupt map to make the handlers work
-void UART1IntHandler(void)
-{
-    unsigned long ulStatus;
-    static uint16_t index = 0;
-    ulStatus = UARTIntStatus(UART1_BASE, true); //get interrupt status
-    UARTIntClear(UART1_BASE, ulStatus); //clear the asserted interrupts
-
-    while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
-    {
-//    UARTCharPutNonBlocking(UART1_BASE, UARTCharGetNonBlocking(UART1_BASE));
-//    //echo character
-        rx_buffer[index] = UARTCharGetNonBlocking(UART1_BASE);
-//        UARTCharPutNonBlocking(UART1_BASE, rx_buffer[index]);
-        index++;
-    }
-
-    if(rx_buffer[index-1] == '\n' || (rx_buffer[index-1] == '\r'))
-    {
-        //Parse bool argument
-        char * token;
-        token = strtok(rx_buffer,";");
-        token = strtok(NULL, ";");
-
-        if(strstr(rx_buffer, "balance") != NULL)
-        {
-
-            if(strstr(token, "on") != NULL){
-
-                printBLEString("balance on \n");
-                turnPIDMW(true);
-                RPMtoESCSignal(1500);
-                TimerEnable(TIMER0_BASE, TIMER_A);
-            }
-            else if(strstr(token, "off") != NULL){
-
-                printBLEString("balance off \n");
-                turnPIDMW(false);
-            }
-
-        }
-        else if(strstr(rx_buffer, "stream") != NULL)
-        {
-            if(strstr(token, "on") != NULL){
-
-                printBLEString("stream on \n");
-                streaming_data = true;
-            }
-            else if(strstr(token, "off") != NULL){
-
-                printBLEString("stream off \n");
-                streaming_data = false;
-            }
-
-        }
-        else if(strstr(rx_buffer, "stop") != NULL)
-        {
-            //Turn off control and send neutral signal to ESC
-            turnPIDMW(false);
-            RPMtoESCSignal(0);
-        }
-        index  = 0;
-    }
-
-}
 
 void InitializeTiva()
 {
@@ -154,7 +86,7 @@ void InitializeTiva()
    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_2);
    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
 
-  ConfigureUART();
+   ConfigureTivaUART();
 //  ConfigureI2C();
   ConfigureBluetoothUART();
   ConfigureIMUUART();
@@ -204,7 +136,7 @@ int main(void)
 
 
 
-    if(streaming_data)
+    if(streamDataFlag())
     {
 //        getIMUDataFloat(&roll_str, &pitch_str, &yaw_str);
 //        getIMUData(&roll_str, &pitch_str, &yaw_str);

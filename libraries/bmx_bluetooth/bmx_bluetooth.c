@@ -15,9 +15,79 @@
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
 
+#include "bmx_esc.h"
+
 
 
 int8_t tx_buffer[100];
+char rx_buffer[100];
+volatile bool streaming_data = false;
+
+//UART interrupt handler. Put the function prototype with the "extern" attribute in startup_gcc
+// and change the handler name in the interrupt map to make the handlers work
+void UART1IntHandler(void)
+{
+    unsigned long ulStatus;
+    static uint16_t index = 0;
+    ulStatus = UARTIntStatus(UART1_BASE, true); //get interrupt status
+    UARTIntClear(UART1_BASE, ulStatus); //clear the asserted interrupts
+
+    while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
+    {
+//    UARTCharPutNonBlocking(UART1_BASE, UARTCharGetNonBlocking(UART1_BASE));
+//    //echo character
+        rx_buffer[index] = UARTCharGetNonBlocking(UART1_BASE);
+//        UARTCharPutNonBlocking(UART1_BASE, rx_buffer[index]);
+        index++;
+    }
+
+    if(rx_buffer[index-1] == '\n' || (rx_buffer[index-1] == '\r'))
+    {
+        //Parse bool argument
+        char * token;
+        token = strtok(rx_buffer,";");
+        token = strtok(NULL, ";");
+
+        if(strstr(rx_buffer, "balance") != NULL)
+        {
+
+            if(strstr(token, "on") != NULL){
+
+                printBLEString("balance on \n");
+                turnPIDMW(true);
+
+            }
+            else if(strstr(token, "off") != NULL){
+
+                printBLEString("balance off \n");
+                turnPIDMW(false);
+            }
+
+        }
+        else if(strstr(rx_buffer, "stream") != NULL)
+        {
+            if(strstr(token, "on") != NULL){
+
+                printBLEString("stream on \n");
+                streaming_data = true;
+            }
+            else if(strstr(token, "off") != NULL){
+
+                printBLEString("stream off \n");
+                streaming_data = false;
+            }
+
+        }
+        else if(strstr(rx_buffer, "stop") != NULL)
+        {
+            //Turn off control and send neutral signal to ESC
+            turnPIDMW(false);
+            RPMtoESCSignal(0);
+        }
+        index  = 0;
+    }
+
+}
 
 void
 //Using uart1 with interrupt enabled
@@ -50,6 +120,11 @@ ConfigureBluetoothUART(void)
     //IntMasterEnable(); //enable processor interrupts
     IntEnable(INT_UART1); //enable the UART interrupt
     UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT); ///only enable RX and TX interrupt
+}
+
+bool streamDataFlag(void)
+{
+    return streaming_data;
 }
 
 

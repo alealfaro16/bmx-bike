@@ -10,5 +10,6 @@ void prinBLEtInt(int16_t n);
 int intToASCII(int n, int * arr);
 void printBLEFloat(int n, int d);
 void ConfigureBluetoothUART(void);
+bool streamDataFlag(void);
 
 #endif // ____BLUETOOTH_H____
