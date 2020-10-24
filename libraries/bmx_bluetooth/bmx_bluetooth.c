@@ -50,7 +50,6 @@ ConfigureBluetoothUART(void)
     //IntMasterEnable(); //enable processor interrupts
     IntEnable(INT_UART1); //enable the UART interrupt
     UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT); ///only enable RX and TX interrupt
-
 }
 
 

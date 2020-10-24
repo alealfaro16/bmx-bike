@@ -9,10 +9,6 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 
-# useSerial = True # set true for using serial for data transmission, false for wifi
-# useQuat = False   # set true for using quaternions, false for using y,p,r angles
-
-
 import serial
 ser = serial.Serial('/dev/tty.usbserial-AI05B84W', 38400) #change port name to yours
 

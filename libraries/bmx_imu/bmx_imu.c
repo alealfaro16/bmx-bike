@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -27,66 +29,122 @@ int16_t gx, gy, gz; // x, y, and z axis readings of the gyroscope
 int16_t ax, ay, az; // x, y, and z axis readings of the accelerometer
 int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
 int16_t i16roll, i16pitch, i16yaw; //IMU angles
+float froll, fpitch, fyaw;
 //int16_t temperature; // Chip temperature
 
 const float PI = 3.14159265358979323846;
+char imu_rx_buffer[100];
+int euler_ang[3]; //yaw, pitch, roll
+
+/* Razor IMU Functions */
+
+void
+//Using uart1 with interrupt enabled
+ConfigureIMUUART(void)
+{
+    //
+    // Enable the GPIO Peripheral used by the UART.
+    //
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+
+    //
+    // Enable UART1
+    //
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART3);
+
+    //
+    // Configure GPIO Pins for UART mode.
+    //
+    GPIOPinConfigure(GPIO_PC6_U3RX);
+    GPIOPinConfigure(GPIO_PC7_U3TX);
+    GPIOPinTypeUART(GPIO_PORTC_BASE, GPIO_PIN_6 | GPIO_PIN_7);
+
+
+    //configure divisor and format
+    UARTConfigSetExpClk(UART3_BASE, SysCtlClockGet(), 115200, (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+    // UARTStdioConfig(1, 9600, 16000000);
+
+    // UARTEchoSet(true);
+
+    //IntMasterEnable(); //enable processor interrupts
+    IntEnable(INT_UART3); //enable the UART interrupt
+    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT); ///only enable RX and TX interrupt
+}
+
+void UART3IntHandler(void)
+{
+   unsigned long ulStatus;
+   static uint16_t index = 0;
+   ulStatus = UARTIntStatus(UART3_BASE, true); //get interrupt status
+   UARTIntClear(UART3_BASE, ulStatus); //clear the asserted interrupts
+
+   while(UARTCharsAvail(UART3_BASE)) //loop while there are chars
+   {
+//    UARTCharPutNonBlocking(UART1_BASE, UARTCharGetNonBlocking(UART1_BASE));
+//    //echo character
+       imu_rx_buffer[index] = UARTCharGetNonBlocking(UART3_BASE);
+//       UARTCharPutNonBlocking(UART1_BASE, imu_rx_buffer[index]);
+       index++;
+   }
+
+   if(imu_rx_buffer[index-1] == '\n' || (imu_rx_buffer[index-1] == '\r'))
+   {
+       char * number;
+
+       if(strstr(imu_rx_buffer, "yaw") != NULL)
+       {
+           number = strchr(imu_rx_buffer , '=');
+           number++;
+           euler_ang[0] = atoi(number);
+       }
+       else if(strstr(imu_rx_buffer, "pitch") != NULL)
+       {
+           number = strchr(imu_rx_buffer , '=');
+           number++;
+           euler_ang[1] = atoi(number);
+       }
+       else if(strstr(imu_rx_buffer, "roll") != NULL)
+       {
+
+           number = strchr(imu_rx_buffer , '=');
+           number++;
+           euler_ang[2] = atoi(number);
+       }
+       //Parse roll only
+//       euler_ang[0] = atoi(imu_rx_buffer);
+       //Parse numbers
+//       char * token;
+//       token = strtok(imu_rx_buffer,";");
+//       int i = 0;
+//
+//       euler_ang[0] = atoi(token); //yaw
+//
+//       token = strtok(NULL, ";");
+//
+//       euler_ang[1] = atoi(token); //pitch
+//
+//       token = strtok(NULL, ";");
+//
+//       euler_ang[2] = atoi(token); //roll
+
+       index = 0;
+   }
+
+}
+
+void getEulers(int * euler_arr)
+{
+
+//    euler_arr[0] = euler_ang[0];
+    int i;
+    for(i=0;i<3;i++)
+    {
+        euler_arr[i] = euler_ang[i];
+
+    }
+}
 
 /* LSM9DS1 Functions */
-
-void printAccel()
-{
-  // To read from the accelerometer, you must first call the
-  // readAccel() function. When this exits, it'll update the
-  // ax, ay, and az variables with the most current data.
-  int16_t  ax, ay, az; // x, y, and z axis readings of the accelerometer
-
-  readAccel(&ax, &ay, &az);
-
-  // Now we can use the ax, ay, and az variables as we please.
-  // Either print them as raw ADC values, or calculated in g's.
-  UARTprintf("A: ");
-  UARTprintf("x:%5d ",ax);
-  UARTprintf("y:%5d ",ay);
-  UARTprintf("z:%5d ",az);
-//  UARTprintf("\n");
-}
-
-void printGyro()
-{
-  // To read from the accelerometer, you must first call the
-  // readAccel() function. When this exits, it'll update the
-  // ax, ay, and az variables with the most current data.
-  int16_t gx, gy, gz; // x, y, and z axis readings of the magnetometer
-
-  readGyro(&gx, &gy, &gz);
-
-  // Now we can use the ax, ay, and az variables as we please.
-  // Either print them as raw ADC values, or calculated in g's.
-  UARTprintf("G: ");
-  UARTprintf("x:%5d ",gx);
-  UARTprintf("y:%5d ",gy);
-  UARTprintf("z:%5d ",gz);
-//  UARTprintf("\n");
-}
-
-void printMag()
-{
-  // To read from the accelerometer, you must first call the
-  // readAccel() function. When this exits, it'll update the
-  // ax, ay, and az variables with the most current data.
-  int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
-
-  readMag(&mx, &my, &mz);
-
-  // Now we can use the ax, ay, and az variables as we please.
-  // Either print them as raw ADC values, or calculated in g's.
-  UARTprintf("M: ");
-  UARTprintf("x:%5d ",mx);
-  UARTprintf("y:%5d ",my);
-  UARTprintf("z:%5d ",mz);
-  UARTprintf("\n");
-}
-
 // Calculate pitch, roll, and yaw.
 // Pitch/roll calculations take from this app note:
 // http://cache.freescale.com/files/sensors/doc/app_note/AN3461.pdf?fpsp=1
@@ -99,39 +157,30 @@ static void readQuaternion()
   readAccel(&ax, &ay, &az);
   readMag(&mx, &my, &mz);
 
-  float roll = atan2(ay, az);
-  float pitch = atan2(-ax, sqrt(ay * ay + az * az));
+  froll = atan2(ay, az);
+  fpitch = atan2(-ax, sqrt(ay * ay + az * az));
 
-  float yaw;
+//  float yaw;
   if (my == 0)
-    yaw = (mx < 0) ? 180.0 : 0;
+    fyaw = (mx < 0) ? 180.0 : 0;
   else
-    yaw = atan2(mx, my);
+    fyaw = atan2(mx, my);
 
 //  heading -= DECLINATION * PI / 180;
 
-  if (yaw > PI) yaw -= (2 * PI);
-  else if (yaw < -PI) yaw += (2 * PI);
-  else if (yaw < 0) yaw += 2 * PI;
+  if (fyaw > PI) fyaw -= (2 * PI);
+  else if (fyaw < -PI) fyaw += (2 * PI);
+  else if (fyaw < 0) fyaw += 2 * PI;
 
   // Convert everything from radians to degrees:
-  yaw *= 180.0 / PI;
-  pitch *= 180.0 / PI;
-  roll  *= 180.0 / PI;
+  fyaw *= 180.0 / PI;
+  fpitch *= 180.0 / PI;
+  froll  *= 180.0 / PI;
 
-  i16roll = roll;
-  i16pitch = pitch;
-  i16yaw = yaw;
-
-//  sprintf(imu_str,"y%3dyp%3dpr%3dr \n",i16yaw,i16pitch,i16roll);
-//  sprintf(imu_str,"y%fyp%fpr%fr \n",i16yaw,i16pitch,i16roll);
-//  printString(imu_str);
-
-//  UARTprintf("Pitch: %3d\n",i16pitch);
-//  UARTprintf("Roll: %3d\n",i16roll);
-//  UARTprintf("Heading: %3d\n",i16yaw);
-
-//  printInt(i16roll);
+  //Convert into millidegrees and ints
+  i16roll = froll*1000;
+  i16pitch = fpitch*1000;
+  i16yaw = fyaw*1000;
 }
 
 static void ImuReadData(void)
@@ -150,6 +199,13 @@ void getIMUData(int16_t * roll, int16_t * pitch, int16_t * yaw)
     *roll = i16roll;
     *pitch = i16pitch;
     *yaw = i16yaw;
+}
+
+void getIMUDataFloat(float * roll, float * pitch, float * yaw)
+{
+    *roll = froll;
+    *pitch = fpitch;
+    *yaw = fyaw;
 }
 
 void ConfigureIMUISR(void)

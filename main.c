@@ -20,6 +20,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 #include "driverlib/interrupt.h"
+#include "driverlib/timer.h"
 #include "driverlib/qei.h"
 #include "driverlib/pwm.h"
 
@@ -37,6 +38,8 @@
 
 char imu_str[150];
 int16_t roll_str, pitch_str, yaw_str; //IMU angles
+//float roll_str, pitch_str, yaw_str; //IMU angles
+int euler_ang_str[3];
 int16_t rpm_str = 0;
 char rx_buffer[100];
 
@@ -95,6 +98,8 @@ void UART1IntHandler(void)
 
                 printBLEString("balance on \n");
                 turnPIDMW(true);
+                RPMtoESCSignal(1500);
+                TimerEnable(TIMER0_BASE, TIMER_A);
             }
             else if(strstr(token, "off") != NULL){
 
@@ -150,8 +155,9 @@ void InitializeTiva()
    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
 
   ConfigureUART();
-  ConfigureI2C();
+//  ConfigureI2C();
   ConfigureBluetoothUART();
+  ConfigureIMUUART();
   ConfigureQEI();
   ConfigureQEIVel();
   ConfigurePWM();
@@ -168,15 +174,14 @@ int main(void)
   delayMs(3000);
 
   InitializeTiva();
-
-  uint8_t rev_data[10];
-  IMU_init();
-  while(!(LSM9DS1_begin())){};
+//  uint8_t rev_data[10];
+//  IMU_init();
+//  while(!(LSM9DS1_begin())){};
 //  initAccel();
-
-  IMU_readWHOAMI_AG(&rev_data[0]);
-  IMU_readWHOAMI_M(&rev_data[1]);
-  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
+//
+//  IMU_readWHOAMI_AG(&rev_data[0]);
+//  IMU_readWHOAMI_M(&rev_data[1]);
+//  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
 
 
   delayMs(3000);
@@ -195,13 +200,19 @@ int main(void)
 //
 //    //
 //    // Delay for a bit.
-    delayMs(100);
+    delayMs(10);
+
+
 
     if(streaming_data)
     {
-        getIMUData(&roll_str, &pitch_str, &yaw_str);
-        getRPM(&rpm_str);
-        sprintf(imu_str,"y%3dyp%3dpr%3drs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
+//        getIMUDataFloat(&roll_str, &pitch_str, &yaw_str);
+//        getIMUData(&roll_str, &pitch_str, &yaw_str);
+//        getRPM(&rpm_str);
+        getEulers(euler_ang_str);
+//        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
+//        sprintf(imu_str,"y%3dyp%3dpr%3drs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
+        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs0s \n",(float) euler_ang_str[0]/1000.00,(float) euler_ang_str[1]/1000.00, (float) euler_ang_str[2]/1000.00);
         printBLEString(imu_str);
     }
 //
@@ -210,7 +221,7 @@ int main(void)
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 //
-   delayMs(100);
+   delayMs(10);
 
 
   }

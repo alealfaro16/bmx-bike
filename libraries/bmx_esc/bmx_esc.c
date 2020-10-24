@@ -48,15 +48,16 @@ static void ESCSignal(void)
     if(PIDOn)
     {
         //Get IMU data
-        getIMUData(&roll, &pitch, &yaw);
+//        getIMUData(&roll, &pitch, &yaw);
 
         //Roll used with PID controller to control MW speed
-        sum_of_error = roll*dt;
-        derror = (roll - prev_error)/dt;
+//        sum_of_error = roll*dt;
+//        derror = (roll - prev_error)/dt;
 
-        rpm = Kp*roll + Ki*sum_of_error;
-        RPMtoESCSignal(rpm);
+//        rpm = Kp*roll + Ki*sum_of_error;
+//        RPMtoESCSignal(rpm);
     }
+    RPMtoESCSignal(0);
 
 }
 
@@ -125,7 +126,7 @@ void ConfigurePWM(void)
 void ConfigureESCSignalISR(void)
 {
     uint32_t period;
-    period = 50000000; //1s
+    period = 100000000; //2s
 
     // 5 regular 16/32 bit timer block, 5 wide 32/64 bit timer block
     // Each timer block has timer output A and B
@@ -148,7 +149,7 @@ void ConfigureESCSignalISR(void)
     TimerLoadSet(TIMER0_BASE, TIMER_A, period-1);
 
     //Enable timer 0A
-    TimerEnable(TIMER0_BASE, TIMER_A);
+//    TimerEnable(TIMER0_BASE, TIMER_A);
 
     //Configuration for timer based interrupt if needed
 
@@ -174,6 +175,14 @@ void RPMtoESCSignal(int16_t speed){
   {
      ticks = FORWARD_A*rpm + FORWARD_B;
 
+  }
+  else if(speed <300 && speed >0)
+  {
+      ticks = NEUTRAL_TICKS; //deadband
+  }
+  else if(speed > -300 && speed <0)
+  {
+      ticks = NEUTRAL_TICKS; //deadband
   }
   else
   {

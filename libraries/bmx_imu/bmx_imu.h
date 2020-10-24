@@ -14,6 +14,9 @@ void printGyro(void);
 void printMag(void);
 void printQuaternion(void);
 void ConfigureIMUISR(void);
+void ConfigureIMUUART(void);
 void getIMUData(int16_t * roll, int16_t * pitch, int16_t * yaw);
+void getIMUDataFloat(float * roll, float * pitch, float * yaw);
+void getEulers(int * euler_arr);
 
 #endif
