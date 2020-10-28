@@ -8,7 +8,7 @@ import time
 
 #initialize serial port
 ser = serial.Serial()
-ser.port = '/dev/ttyUSB0' #Arduino serial port
+ser.port = '/dev/tty.usbserial-AI05B84W' #Arduino serial port
 ser.baudrate = 38400
 ser.timeout = 10 #specify timeout when using readline()
 ser.open()
@@ -19,27 +19,47 @@ if ser.is_open==True:
 
 ser.flushInput() #This gives the bluetooth a little kick
 
+#Enable streaming
+ser.write("stream;on;\n".encode())
+time.sleep(0.1)
+ser.write("balance;on;\n".encode())
+
 # Create figure for plotting
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 xs = [] #store trials here (n)
 ys = [] #store relative frequency here
+rs = [] #store relative frequency here
 i = 0
 
+def cleanSerialBegin():
+    try:
+        line = ser.readline().decode('UTF-8').replace('\n', '')
+        yaw = float(line.split('y')[1])
+        pitch = float(line.split('p')[1])
+        roll = float(line.split('r')[1])
+        speed = int(line.split('s')[1])
+    except Exception:
+        pass
+
 # This function is called periodically from FuncAnimation
-def animate(i, xs, ys):
+def animate(i, xs, ys, rs):
 
 		#Aquire and parse data from serial port
-		line=ser.readline()      #ascii
-		#line_as_list = line.split(b',')
-		#int(line_as_list[0])
-		#encoder_count = line_as_list[1]
-		encoder_count_list = line.split(b'\n')
-		encoder_count_float = float(encoder_count_list[0])
+		ser.reset_input_buffer()
+		cleanSerialBegin()
+		line = ser.readline().decode('UTF-8').replace('\n', '')
+		print(line)
+
+		yaw = float(line.split('y')[1])
+		pitch = float(line.split('p')[1])
+		roll = float(line.split('r')[1])
+		speed = int(line.split('s')[1])
 
 		# Add x and y to lists
 		xs.append(i)
-		ys.append(encoder_count_float)
+		ys.append(roll)
+		rs.append(speed)
 		i = i + 1
 
 		# Limit x and y lists to 20 items
@@ -48,8 +68,8 @@ def animate(i, xs, ys):
 
 		# Draw x and y lists
 		ax.clear()
-		ax.plot(xs, ys, label="Encoder Count")
-		#ax.plot(xs, rs, label="Theoretical Probability")
+		ax.plot(xs, ys, label="Roll")
+		//ax.plot(xs, rs, label="Theoretical Probability")
 
 		# Format plot
 		plt.xticks(rotation=45, ha='right')
@@ -58,9 +78,9 @@ def animate(i, xs, ys):
 		plt.ylabel('Encoder Count')
 		plt.xlabel('Time (s)')
 		plt.legend()
-		plt.axis([0, None, 0, 1]) #Use for arbitrary number of trials
+		plt.axis([0, None, -5, 5]) #Use for arbitrary number of trials
 		#plt.axis([1, 100, 0, 1.1]) #Use for 100 trial demo
 
 # Set up plot to call animate() function periodically
-ani = animation.FuncAnimation(fig, animate, fargs=(xs,ys), interval=100)
+ani = animation.FuncAnimation(fig, animate, fargs=(xs,ys,rs), interval=100)
 plt.show()

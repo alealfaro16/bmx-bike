@@ -140,11 +140,11 @@ int main(void)
     {
 //        getIMUDataFloat(&roll_str, &pitch_str, &yaw_str);
 //        getIMUData(&roll_str, &pitch_str, &yaw_str);
-//        getRPM(&rpm_str);
+        getRPM(&rpm_str);
         getEulers(euler_ang_str);
 //        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
 //        sprintf(imu_str,"y%3dyp%3dpr%3drs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
-        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs0s \n",(float) euler_ang_str[0]/1000.00,(float) euler_ang_str[1]/1000.00, (float) euler_ang_str[2]/1000.00);
+        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs%3ds \n",(float) euler_ang_str[0]/1000.00,(float) euler_ang_str[1]/1000.00, (float) euler_ang_str[2]/1000.00, rpm_str);
         printBLEString(imu_str);
     }
 //

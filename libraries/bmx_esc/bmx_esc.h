@@ -39,6 +39,8 @@
 #define REVERSE_A 0.326
 #define REVERSE_B 4573
 
+#define MAX_RPM 1500
+#define MIN_RPM -1500
 
 //Configures a PWM
 void ConfigurePWM(void);

@@ -20,15 +20,17 @@
 
 volatile int pos, vel, vel_rpm, prev_vel_rpm = 0, dir;
 volatile bool PIDOn = false;
+int euler_ang_pid[3];
+static volatile float roll = 0, set_point = 0;
 
 float A = 0.5;
 float B = 0.5;
 
-int16_t roll, pitch, yaw, prev_roll; //IMU angles
-int16_t rpm;
+//int16_t roll, pitch, yaw, prev_roll; //IMU angles
+volatile int16_t rpm;
 
-int16_t sum_of_error = 0, prev_error = 0, derror = 0, dt = 1;//dt = 1s
-float Kp = 3, Ki =4, Kd = 3;
+volatile float sum_of_error = 0, prev_error = 0, derror = 0, dt = 1;//dt = 1s
+float Kp = -0.050, Ki =0.010, Kd = 3;
 
 
 static void ESCSignal(void)
@@ -48,16 +50,26 @@ static void ESCSignal(void)
     if(PIDOn)
     {
         //Get IMU data
-//        getIMUData(&roll, &pitch, &yaw);
-
-        //Roll used with PID controller to control MW speed
-//        sum_of_error = roll*dt;
+        getEulers(euler_ang_pid);
+//        roll = euler_ang_pid[2]/1000.00;
+//
+//        Roll used with PID controller to control MW speed
+        sum_of_error = sum_of_error + euler_ang_pid[2];
 //        derror = (roll - prev_error)/dt;
+//
+        rpm = Kp*euler_ang_pid[2] + Ki*sum_of_error;
 
-//        rpm = Kp*roll + Ki*sum_of_error;
-//        RPMtoESCSignal(rpm);
+        if(rpm > MAX_RPM)
+        {
+            rpm = MAX_RPM;
+        }
+        else if(rpm <  MIN_RPM)
+        {
+            rpm = MIN_RPM;
+        }
+
+        RPMtoESCSignal(rpm);
     }
-    RPMtoESCSignal(0);
 
 }
 
@@ -126,7 +138,7 @@ void ConfigurePWM(void)
 void ConfigureESCSignalISR(void)
 {
     uint32_t period;
-    period = 100000000; //2s
+    period = 2500000; //50ms //50000000 is 1s for reference
 
     // 5 regular 16/32 bit timer block, 5 wide 32/64 bit timer block
     // Each timer block has timer output A and B
@@ -149,7 +161,7 @@ void ConfigureESCSignalISR(void)
     TimerLoadSet(TIMER0_BASE, TIMER_A, period-1);
 
     //Enable timer 0A
-//    TimerEnable(TIMER0_BASE, TIMER_A);
+    TimerEnable(TIMER0_BASE, TIMER_A);
 
     //Configuration for timer based interrupt if needed
 

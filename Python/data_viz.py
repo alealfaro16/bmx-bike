@@ -8,9 +8,23 @@ import math
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
+import numpy as np
+import random
+import time
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib import style
+
 
 import serial
 ser = serial.Serial('/dev/tty.usbserial-AI05B84W', 38400) #change port name to yours
+
+# Create arrays for plotting
+time_arr = [] #store trials here (n)
+roll_arr = [] 
+speed_arr = [] 
+i = 0
 
 
 def main():
@@ -21,18 +35,53 @@ def main():
     resizewin(700, 480)
     init()
     frames = 0
-    ticks = pygame.time.get_ticks()
+    i = 0
+    start_ticks = pygame.time.get_ticks()
+
+    #Enable streaming
+    ser.write("stream;on;\n".encode())
+    time.sleep(0.1)
+    ser.write("balance;on;\n".encode())
+
     while 1:
         event = pygame.event.poll()
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             break
 
         [yaw, pitch, roll, speed] = read_data()
+        roll = random.random()*5 - 5
+        speed = random.randint(-1500, 1500)
+        yaw = 0
+        pitch = 0
+        time_arr.append((pygame.time.get_ticks()-start_ticks)/1000)
+        roll_arr.append(roll)
+        speed_arr.append(speed)
         draw(1, yaw, pitch, roll, speed)
         pygame.display.flip()
         frames += 1
-    print("fps: %d" % ((frames*1000)/(pygame.time.get_ticks()-ticks)))
+
+    print("fps: %d" % ((frames*1000)/(pygame.time.get_ticks()-start_ticks)))
+    ser.write("stream;off;\n".encode())
+    time.sleep(0.1)
+    ser.write("balance;off;\n".encode())
+    time.sleep(0.1)
+    ser.write("stop;\n".encode())
     ser.close()
+
+    #Plot data collected
+    fig = plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.plot(time_arr, roll_arr, 'ko-')
+    plt.title('time(s)')
+    plt.ylabel('Roll angle (deg)')
+
+
+    plt.subplot(2, 1, 2)
+    plt.plot(time_arr, speed_arr, 'r.-')
+    plt.xlabel('time (s)')
+    plt.ylabel('Speed (RPM)')
+
+    plt.show()
 
 
 def resizewin(width, height):
