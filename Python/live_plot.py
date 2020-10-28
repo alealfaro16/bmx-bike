@@ -69,7 +69,7 @@ def animate(i, xs, ys, rs):
 		# Draw x and y lists
 		ax.clear()
 		ax.plot(xs, ys, label="Roll")
-		//ax.plot(xs, rs, label="Theoretical Probability")
+		#ax.plot(xs, rs, label="Theoretical Probability")
 
 		# Format plot
 		plt.xticks(rotation=45, ha='right')
