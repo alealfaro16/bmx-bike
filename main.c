@@ -36,12 +36,14 @@
 #include "bmx_encoder.h"
 #include "bmx_bluetooth.h"
 
-char imu_str[150];
-int16_t roll_str, pitch_str, yaw_str; //IMU angles
-//float roll_str, pitch_str, yaw_str; //IMU angles
-int euler_ang_str[3];
-int16_t rpm_str = 0;
-
+char data_stream_str[150];
+int bike_angles[3] = {0, 0 ,0};
+float roll=0;
+int16_t mw_state[2] = {0, 0}; //speed and acceleration
+//PID Control
+float set_point = 181.55; // imu is not completely parallel to the floor
+float sum_of_error = 0, prev_error = 0, error = 0, dt = 1;//dt = 1s
+float Kp = -200, Ki = 1, Kd = 1;
 
 void ConfigureTivaUART()
 {
@@ -96,7 +98,8 @@ void InitializeTiva()
 
   //Configure ISRs
   ConfigureIMUISR(); //called every 100ms
-  ConfigureESCSignalISR(); //called every 1s
+  ConfigurePIDControlISR(); //called every 10ms
+  ConfigurePIDControlStartTimer(); // called to start control after 5s
 
 }
 
@@ -106,22 +109,11 @@ int main(void)
   delayMs(3000);
 
   InitializeTiva();
-//  uint8_t rev_data[10];
-//  IMU_init();
-//  while(!(LSM9DS1_begin())){};
-//  initAccel();
-//
-//  IMU_readWHOAMI_AG(&rev_data[0]);
-//  IMU_readWHOAMI_M(&rev_data[1]);
-//  UARTprintf("who_am_i: %x %x\n",rev_data[0],rev_data[1]);
-
 
   delayMs(3000);
   GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
   //start ESC signal
-//  RPMtoESCSignal(-150);
-
   while(1)
   {
 
@@ -132,20 +124,49 @@ int main(void)
 //
 //    //
 //    // Delay for a bit.
-    delayMs(10);
+    delayMs(15);
 
 
 
     if(streamDataFlag())
     {
-//        getIMUDataFloat(&roll_str, &pitch_str, &yaw_str);
-//        getIMUData(&roll_str, &pitch_str, &yaw_str);
-        getRPM(&rpm_str);
-        getEulers(euler_ang_str);
-//        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
-//        sprintf(imu_str,"y%3dyp%3dpr%3drs%3ds \n",yaw_str,pitch_str,roll_str, rpm_str);
-        sprintf(imu_str,"y%.2fyp%.2fpr%.2frs%3ds \n",(float) euler_ang_str[0]/1000.00,(float) euler_ang_str[1]/1000.00, (float) euler_ang_str[2]/1000.00, rpm_str);
-        printBLEString(imu_str);
+//        getMWState(mw_state);
+        getEulers(bike_angles);
+
+        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3da \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, mw_state[0], mw_state[1]);
+        printBLEString(data_stream_str);
+
+    }
+
+    if(stopFlag())
+    {
+
+        sum_of_error = 0;
+        mw_state[0]= 0;
+        mw_state[1] = 0;
+        setMWRPM(0);
+        clearStopFlag();
+    }
+    else
+    {
+        if(getControlFlag())
+        {
+            roll = (float) bike_angles[2]/1000;
+            error = set_point - roll;
+            sum_of_error = sum_of_error + error;
+            mw_state[1] = Kp*error- Kd*mw_state[0];//+ Ki*sum_of_error +
+            mw_state[0] += mw_state[1];
+
+            if(mw_state[0] > MAX_RPM)
+            {
+                mw_state[0] = MAX_RPM;
+            }
+            else if(mw_state[0] <  MIN_RPM)
+            {
+                mw_state[0] = MIN_RPM;
+            }
+            setMWRPM(mw_state[0]);
+        }
     }
 //
 // Turn off the LED.
@@ -153,7 +174,7 @@ int main(void)
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0);
 //
-   delayMs(10);
+   delayMs(15);
 
 
   }

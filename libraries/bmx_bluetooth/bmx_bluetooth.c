@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "inc/hw_gpio.h"
 #include "inc/hw_memmap.h"
@@ -11,17 +12,19 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/interrupt.h"
+#include "driverlib/timer.h"
 #include "bmx_bluetooth.h"
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
-
+#include "driverlib/pwm.h"
 #include "bmx_esc.h"
 
 
 
 int8_t tx_buffer[100];
 char rx_buffer[100];
-volatile bool streaming_data = false;
+volatile bool streaming_data = false, streaming_rpm = false;
+volatile int rpm;
 
 //UART interrupt handler. Put the function prototype with the "extern" attribute in startup_gcc
 // and change the handler name in the interrupt map to make the handlers work
@@ -45,6 +48,7 @@ void UART1IntHandler(void)
     {
         //Parse bool argument
         char * token;
+
         token = strtok(rx_buffer,";");
         token = strtok(NULL, ";");
 
@@ -54,7 +58,7 @@ void UART1IntHandler(void)
             if(strstr(token, "on") != NULL){
 
                 printBLEString("balance on \n");
-                turnPIDMW(true);
+                TimerEnable(TIMER2_BASE, TIMER_A);
 
             }
             else if(strstr(token, "off") != NULL){
@@ -82,8 +86,10 @@ void UART1IntHandler(void)
         {
             //Turn off control and send neutral signal to ESC
             turnPIDMW(false);
-            RPMtoESCSignal(0);
+            setStopFlag();
+            streaming_data = false;
         }
+
         index  = 0;
     }
 
@@ -125,6 +131,11 @@ ConfigureBluetoothUART(void)
 bool streamDataFlag(void)
 {
     return streaming_data;
+}
+
+bool streamRPMFlag(void)
+{
+    return streaming_rpm;
 }
 
 

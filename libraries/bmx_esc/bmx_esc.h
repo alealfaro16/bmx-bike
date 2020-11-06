@@ -32,21 +32,20 @@
 #define FORWARD_START_TICKS  4786//Empirically found, the theoretical (NEUTRAL_TICKS + DEADBAND_TICKS) does not work
 #define REVERSE_START_TICKS  4560//Empirically found, the theoretical (NEUTRAL_TICKS - DEADBAND_TICKS) does not work
 
-//PWM duty cycle to Speed Coefficients (Empirically calculated)
-#define FORWARD_A 0.25
-#define FORWARD_B 4784
 
-#define REVERSE_A 0.326
-#define REVERSE_B 4573
-
-#define MAX_RPM 1500
-#define MIN_RPM -1500
+#define MAX_RPM 1000
+#define MIN_RPM -1000
 
 //Configures a PWM
 void ConfigurePWM(void);
-void ConfigureESCSignalISR(void);
+void ConfigurePIDControlISR(void);
+void ConfigurePIDControlStartTimer(void);
 void RPMtoESCSignal(int16_t speed);
-void getRPM(int16_t * rpm_str);
+void setMWRPM(int16_t set_rpm);
 void turnPIDMW(bool state);
+bool getControlFlag(void);
+bool stopFlag(void);
+void setStopFlag(void);
+void clearStopFlag(void);
 
 #endif /* BMX_ESC_H */

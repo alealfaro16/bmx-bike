@@ -139,7 +139,14 @@ void getEulers(int * euler_arr)
     int i;
     for(i=0;i<3;i++)
     {
-        euler_arr[i] = euler_ang[i];
+        if(i == 2)
+        {
+            euler_arr[i] = euler_ang[i]; //+ 180000;
+        }
+        else
+        {
+            euler_arr[i] = euler_ang[i];
+        }
 
     }
 }

@@ -12,6 +12,8 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
 
+int real_rpm;
+
 
 void ConfigureQEI(void){
 
@@ -79,6 +81,14 @@ void ConfigureQEIVel(void){
   QEIVelocityEnable(QEI0_BASE);
 
 
+}
+
+void getRealRPM(int16_t * rpm_str)
+{
+    real_rpm = QEIVelocityGet(QEI0_BASE);
+    real_rpm = (int) real_rpm*0.007324;//(constant is (360/8192)/6 to get RPM from pulses per second)
+
+   *rpm_str = real_rpm*QEIDirectionGet(QEI0_BASE);
 }
 
 int pulsesToDegrees(float pulses, float ppr){

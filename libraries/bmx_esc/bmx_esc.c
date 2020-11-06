@@ -19,68 +19,77 @@
 #include "utils/uartstdio.h"
 
 volatile int pos, vel, vel_rpm, prev_vel_rpm = 0, dir;
-volatile bool PIDOn = false;
+volatile bool PIDOn = false, stop_flag = false;
 int euler_ang_pid[3];
-static volatile float roll = 0, set_point = 0;
 
 float A = 0.5;
 float B = 0.5;
 
+//PWM duty cycle to Speed Coefficients (Empirically calculated)
+float FORWARD_A = 0.205;
+float FORWARD_B = 4771;
+
+float REVERSE_A = 0.287;
+float REVERSE_B = 4557;
+
 //int16_t roll, pitch, yaw, prev_roll; //IMU angles
-volatile int16_t rpm;
-
-volatile float sum_of_error = 0, prev_error = 0, derror = 0, dt = 1;//dt = 1s
-float Kp = -0.050, Ki =0.010, Kd = 3;
+volatile int16_t rpm, accl;
 
 
-static void ESCSignal(void)
+
+static void PIDControlISR(void)
 {
     uint32_t status=0;
     status = TimerIntStatus(TIMER0_BASE,true);
     TimerIntClear(TIMER0_BASE,status);
-    // Read position from encoder.
-    //
-//    pos = QEIPositionGet(QEI0_BASE);
-//    vel = QEIVelocityGet(QEI0_BASE);
-//    dir = QEIDirectionGet(QEI0_BASE);
-//
-//    vel_rpm = (int) vel*0.007324*A + B*prev_vel_rpm; //(60/8192)
-//    prev_vel_rpm = vel_rpm;
-//    UARTprintf("vel = %d rpm \n", vel_rpm*dir);
+
     if(PIDOn)
     {
-        //Get IMU data
-        getEulers(euler_ang_pid);
-//        roll = euler_ang_pid[2]/1000.00;
-//
-//        Roll used with PID controller to control MW speed
-        sum_of_error = sum_of_error + euler_ang_pid[2];
-//        derror = (roll - prev_error)/dt;
-//
-        rpm = Kp*euler_ang_pid[2] + Ki*sum_of_error;
-
-        if(rpm > MAX_RPM)
-        {
-            rpm = MAX_RPM;
-        }
-        else if(rpm <  MIN_RPM)
-        {
-            rpm = MIN_RPM;
-        }
-
+        //Set RPM
         RPMtoESCSignal(rpm);
     }
 
 }
 
+void StartPIDControlISR(void)
+{
+    uint32_t status=0;
+    status = TimerIntStatus(TIMER2_BASE,true);
+    TimerIntClear(TIMER2_BASE,status);
+    TimerDisable(TIMER2_BASE, TIMER_A);
+
+    turnPIDMW(true);
+
+}
 void turnPIDMW(bool state)
 {
     PIDOn = state;
 }
 
-void getRPM(int16_t * rpm_str)
+bool stopFlag(void)
 {
-   *rpm_str = rpm;
+    return stop_flag;
+}
+
+void clearStopFlag(void)
+{
+     stop_flag = false;
+}
+
+void setStopFlag(void)
+{
+     stop_flag = true;
+}
+
+
+void setMWRPM(int16_t set_rpm)
+{
+   rpm = set_rpm;
+}
+
+bool getControlFlag(void)
+{
+   return PIDOn;
 }
 
 void ConfigurePWM(void)
@@ -135,10 +144,10 @@ void ConfigurePWM(void)
 
 }
 
-void ConfigureESCSignalISR(void)
+void ConfigurePIDControlISR(void)
 {
     uint32_t period;
-    period = 2500000; //50ms //50000000 is 1s for reference
+    period = 500000; //10ms //50000000 is 1s for reference
 
     // 5 regular 16/32 bit timer block, 5 wide 32/64 bit timer block
     // Each timer block has timer output A and B
@@ -167,14 +176,36 @@ void ConfigureESCSignalISR(void)
 
     //Link the timer0,A and the ISR together
     // ISR is the your routine function
-    TimerIntRegister(TIMER0_BASE, TIMER_A, ESCSignal);
+    TimerIntRegister(TIMER0_BASE, TIMER_A, PIDControlISR);
 
     //Enable interrupt on timer 0A
     IntEnable(INT_TIMER0A);
 
     //Enable timer interrupt
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+}
 
+void ConfigurePIDControlStartTimer(void)
+{
+    uint32_t period;
+    period = 250000000; //5s //50000000 is 1s for reference
+
+    // 5 regular 16/32 bit timer block, 5 wide 32/64 bit timer block
+    // Each timer block has timer output A and B
+    // See Section 11 of the data sheet for more Information
+
+    // Enable 16/32 bit Timer 0
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER2))
+    {
+    }
+
+    TimerConfigure(TIMER2_BASE, TIMER_CFG_ONE_SHOT);
+    TimerLoadSet(TIMER2_BASE, TIMER_A, period-1);
+    TimerDisable(TIMER2_BASE, TIMER_A);
+    TimerIntRegister(TIMER2_BASE, TIMER_A, StartPIDControlISR);
+    IntEnable(INT_TIMER2A);
+    TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
 }
 
 
@@ -188,11 +219,11 @@ void RPMtoESCSignal(int16_t speed){
      ticks = FORWARD_A*rpm + FORWARD_B;
 
   }
-  else if(speed <300 && speed >0)
+  else if(speed <150 && speed >0)
   {
       ticks = NEUTRAL_TICKS; //deadband
   }
-  else if(speed > -300 && speed <0)
+  else if(speed > -150 && speed <0)
   {
       ticks = NEUTRAL_TICKS; //deadband
   }
@@ -203,7 +234,7 @@ void RPMtoESCSignal(int16_t speed){
   }
 
   //Set PWM to the desired speed
-  UARTprintf("ticks = %d \n", ticks);
+//  UARTprintf("ticks = %d \n", ticks);
   PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, ticks);
 
 }

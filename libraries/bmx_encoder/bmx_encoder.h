@@ -17,4 +17,5 @@
 int pulsesToDegrees(float pulses, float ppr);
 void ConfigureQEI(void);
 void ConfigureQEIVel(void);
+void getRealRPM(int16_t * rpm_str);
 #endif // __ENCODER_H__
