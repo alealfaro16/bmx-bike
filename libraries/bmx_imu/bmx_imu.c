@@ -215,41 +215,4 @@ void getIMUDataFloat(float * roll, float * pitch, float * yaw)
     *yaw = fyaw;
 }
 
-void ConfigureIMUISR(void)
-{
-    uint32_t period;
-    period = 5000000; //100ms
 
-
-    // Enable 16/32 bit Timer 0
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER5))
-    {
-    }
-
-    // TIMER_CFG_PERIODIC means full-width periodic
-    TimerConfigure(TIMER5_BASE, TIMER_CFG_PERIODIC);
-
-    // Timer load set
-    // !! WARNGING !!
-    // DO NOT USE SysCtlClockGet() TO SET THE PERIOD
-    // IT WILL NOT WORK AS INTENDED, USE THE period VARIABLE INSTEAD
-
-    TimerLoadSet(TIMER5_BASE, TIMER_A, period-1);
-
-    //Enable timer 0A
-    TimerEnable(TIMER5_BASE, TIMER_A);
-
-    //Configuration for timer based interrupt if needed
-
-    //Link the timer0,A and the ISR together
-    // ISR is the your routine function
-    TimerIntRegister(TIMER5_BASE, TIMER_A, ImuReadData);
-
-    //Enable interrupt on timer 0A
-    IntEnable(INT_TIMER5A);
-
-    //Enable timer interrupt
-    TimerIntEnable(TIMER5_BASE, TIMER_TIMA_TIMEOUT);
-
-}

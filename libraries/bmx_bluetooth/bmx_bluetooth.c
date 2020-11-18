@@ -58,7 +58,8 @@ void UART1IntHandler(void)
             if(strstr(token, "on") != NULL){
 
                 printBLEString("balance on \n");
-                TimerEnable(TIMER2_BASE, TIMER_A);
+                streaming_data = true;
+                TimerEnable(TIMER2_BASE, TIMER_A); //Start 5s countdown to start balance control
 
             }
             else if(strstr(token, "off") != NULL){

@@ -11,9 +11,13 @@
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/timer.h"
+#include "driverlib/interrupt.h"
 
-int real_rpm;
+#include "bmx_bluetooth.h"
 
+uint32_t real_rpm, prev_rpm, accl;
+int16_t current_ms, prev_ms, ms_count;
 
 void ConfigureQEI(void){
 
@@ -69,6 +73,58 @@ void ConfigureQEI(void){
 
 }
 
+void countMS(void)
+{
+    uint32_t status=0;
+    status = TimerIntStatus(TIMER5_BASE,true);
+    TimerIntClear(TIMER5_BASE,status);
+
+    if(streamDataFlag())
+    {
+        ms_count++;
+    }
+
+}
+
+void ConfigureAcclTimer(void)
+{
+    uint32_t period;
+    period = 50000; //1ms
+
+
+    // Enable 16/32 bit Timer 0
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER5))
+    {
+    }
+
+    // TIMER_CFG_PERIODIC means full-width periodic
+    TimerConfigure(TIMER5_BASE, TIMER_CFG_PERIODIC);
+
+    // Timer load set
+    // !! WARNGING !!
+    // DO NOT USE SysCtlClockGet() TO SET THE PERIOD
+    // IT WILL NOT WORK AS INTENDED, USE THE period VARIABLE INSTEAD
+
+    TimerLoadSet(TIMER5_BASE, TIMER_A, period-1);
+
+    //Enable timer 0A
+    TimerDisable(TIMER5_BASE, TIMER_A);
+
+    //Configuration for timer based interrupt if needed
+
+    //Link the timer0,A and the ISR together
+    // ISR is the your routine function
+    TimerIntRegister(TIMER5_BASE, TIMER_A, countMS);
+//
+//    //Enable interrupt on timer 0A
+    IntEnable(INT_TIMER5A);
+//
+//    //Enable timer interrupt
+    TimerIntEnable(TIMER5_BASE, TIMER_TIMA_TIMEOUT);
+
+}
+
 void ConfigureQEIVel(void){
 
   // Configure quadrature encoder.
@@ -83,12 +139,18 @@ void ConfigureQEIVel(void){
 
 }
 
-void getRealRPM(int16_t * rpm_str)
+void getRealMWState(int16_t * real_mw_state)
 {
+    prev_rpm = real_rpm;
     real_rpm = QEIVelocityGet(QEI0_BASE);
     real_rpm = (int) real_rpm*0.007324;//(constant is (360/8192)/6 to get RPM from pulses per second)
 
-   *rpm_str = real_rpm*QEIDirectionGet(QEI0_BASE);
+    real_mw_state[0] = real_rpm*QEIDirectionGet(QEI0_BASE);
+
+    current_ms = ms_count;
+    ms_count = 0;
+
+    real_mw_state[1] = (real_rpm - prev_rpm)/current_ms;
 }
 
 int pulsesToDegrees(float pulses, float ppr){

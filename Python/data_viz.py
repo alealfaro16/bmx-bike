@@ -25,13 +25,15 @@ time_arr = [] #store trials here (n)
 roll_arr = [] 
 speed_arr = [] 
 accl_arr = [] 
+real_speed_arr = [] 
+real_accl_arr = [] 
 i = 0
 
 
 def main():
     video_flags = OPENGL | DOUBLEBUF
     pygame.init()
-    screen = pygame.display.set_mode((800, 480), video_flags)
+    screen = pygame.display.set_mode((700, 480), video_flags)
     pygame.display.set_caption("IMU orientation visualization")
     resizewin(700, 480)
     init()
@@ -39,9 +41,7 @@ def main():
     i = 0
     start_ticks = pygame.time.get_ticks()
 
-    #Enable streaming
-    ser.write("stream;on;\n".encode())
-    time.sleep(0.1)
+    #Enable streaming and balance
     ser.write("balance;on;\n".encode())
     time.sleep(0.1)
     
@@ -50,12 +50,14 @@ def main():
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             break
 
-        [yaw, pitch, roll, speed, accl] = read_data()
+        [yaw, pitch, roll, speed, accl, real_speed, real_accl] = read_data()
         time_arr.append((pygame.time.get_ticks()-start_ticks)/1000)
         roll_arr.append(roll)
         speed_arr.append(speed)
+        real_speed_arr.append(real_speed)
         accl_arr.append(accl)
-        draw(1, yaw, pitch, roll, speed, accl)
+        real_accl_arr.append(real_accl)
+        draw(1, yaw, pitch, roll, speed, accl, real_speed, real_accl)
         pygame.display.flip()
         frames += 1
 
@@ -66,21 +68,31 @@ def main():
 
     #Plot data collected
     fig = plt.figure()
-    plt.subplot(3, 1, 1)
+    plt.subplot(3, 2, 1)
     plt.plot(time_arr, roll_arr, 'ko-')
     plt.title('time(s)')
     plt.ylabel('Roll angle (deg)')
 
 
-    plt.subplot(3, 1, 2)
+    plt.subplot(3, 2, 3)
     plt.plot(time_arr, speed_arr, 'r.-')
     plt.xlabel('time (s)')
-    plt.ylabel('Speed (RPM)')
+    plt.ylabel('Commanded Speed (RPM)')
 
-    plt.subplot(3, 1, 3)
+    plt.subplot(3, 2, 4)
+    plt.plot(time_arr, real_speed_arr, 'r.-')
+    plt.xlabel('time (s)')
+    plt.ylabel('Real Speed (RPM)')
+
+    plt.subplot(3, 2, 5)
     plt.plot(time_arr, accl_arr, 'b.-')
     plt.xlabel('time (s)')
     plt.ylabel('Accl (delta RPM)')
+
+    plt.subplot(3, 2, 6)
+    plt.plot(time_arr, real_accl_arr, 'b.-')
+    plt.xlabel('time (s)')
+    plt.ylabel('Real Accl (delta RPM)')
 
     plt.show()
 
@@ -116,6 +128,8 @@ def cleanSerialBegin():
         roll = float(line.split('r')[1])
         speed = int(line.split('s')[1])
         accl = int(line.split('a')[1])
+        real_speed = int(line.split('v')[1])
+        real_accl = int(line.split('l')[1])
     except Exception:
         pass
 
@@ -131,10 +145,12 @@ def read_data():
     roll = float(line.split('r')[1])
     speed = int(line.split('s')[1])
     accl = int(line.split('a')[1])
-    return [yaw, pitch, roll, speed, accl]
+    real_speed = int(line.split('v')[1])
+    real_accl = int(line.split('l')[1])
+    return [yaw, pitch, roll, speed, accl, real_speed, real_accl] 
 
 
-def draw(w, nx, ny, nz, speed, accl):
+def draw(w, nx, ny, nz, speed, accl, real_speed, real_accl):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glTranslatef(0, 0.0, -7.0)
@@ -146,7 +162,8 @@ def draw(w, nx, ny, nz, speed, accl):
     yaw = nx
     pitch = ny
     roll = nz
-    drawText((-2.6, -1.8, 2), "Yaw: %f, Pitch: %f, Roll: %f, Speed %d, Accl %d" %(yaw, pitch, roll, speed, accl), 16)
+    drawText((-2.6, -1.6, 2), "Yaw: %f, Pitch: %f, Roll: %f" %(yaw, pitch, roll), 16)
+    drawText((-2.6, -1.8, 2),"Speed: %d, Accl: %d, Real Speed: %d, Real Accl: %d" %( speed, accl, real_speed, real_accl), 16)
     glRotatef(-roll, 0.00, 0.00, 1.00)
     glRotatef(pitch, 1.00, 0.00, 0.00)
     glRotatef(yaw, 0.00, 1.00, 0.00)

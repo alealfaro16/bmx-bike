@@ -39,11 +39,14 @@
 char data_stream_str[150];
 int bike_angles[3] = {0, 0 ,0};
 float roll=0;
-int16_t mw_state[2] = {0, 0}; //speed and acceleration
+
+uint32_t real_rpm;
+int16_t cmd_mw_state[2] = {0, 0}; //commanded speed and acceleration
+int16_t real_mw_state[2] = {0, 0}; //real speed and acceleration
 //PID Control
-float set_point = 181.55; // imu is not completely parallel to the floor
+float set_point = 178.7; // imu is not completely parallel to the floor
 float sum_of_error = 0, prev_error = 0, error = 0, dt = 1;//dt = 1s
-float Kp = -200, Ki = 1, Kd = 1;
+float Kp = -350, Ki = 1, Kd = 1;
 
 void ConfigureTivaUART()
 {
@@ -88,7 +91,7 @@ void InitializeTiva()
    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_2);
    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
 
-   ConfigureTivaUART();
+  ConfigureTivaUART();
 //  ConfigureI2C();
   ConfigureBluetoothUART();
   ConfigureIMUUART();
@@ -97,9 +100,9 @@ void InitializeTiva()
   ConfigurePWM();
 
   //Configure ISRs
-  ConfigureIMUISR(); //called every 100ms
-  ConfigurePIDControlISR(); //called every 10ms
-  ConfigurePIDControlStartTimer(); // called to start control after 5s
+//  ConfigureAcclTimer(); //TIMER5A called every 1ms
+  ConfigurePIDControlISR(); //TIMER0A called every 10ms
+  ConfigurePIDControlStartTimer(); //TIMER2A called to start control after 5s
 
 }
 
@@ -112,8 +115,6 @@ int main(void)
 
   delayMs(3000);
   GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
-
-  //start ESC signal
   while(1)
   {
 
@@ -130,10 +131,10 @@ int main(void)
 
     if(streamDataFlag())
     {
-//        getMWState(mw_state);
         getEulers(bike_angles);
-
-        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3da \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, mw_state[0], mw_state[1]);
+        getRealMWState(real_mw_state);
+//        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, cmd_mw_state[0], cmd_mw_state[1], real_mw_state[0], real_mw_state[1]);
+        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, 0, 0, real_mw_state[0], 0);
         printBLEString(data_stream_str);
 
     }
@@ -142,9 +143,10 @@ int main(void)
     {
 
         sum_of_error = 0;
-        mw_state[0]= 0;
-        mw_state[1] = 0;
-        setMWRPM(0);
+        cmd_mw_state[0]= 0;
+        cmd_mw_state[1] = 0;
+        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, NEUTRAL_TICKS);
+//        setMWRPM(0);
         clearStopFlag();
     }
     else
@@ -154,18 +156,19 @@ int main(void)
             roll = (float) bike_angles[2]/1000;
             error = set_point - roll;
             sum_of_error = sum_of_error + error;
-            mw_state[1] = Kp*error- Kd*mw_state[0];//+ Ki*sum_of_error +
-            mw_state[0] += mw_state[1];
+            cmd_mw_state[1] = Kp*error- Kd*cmd_mw_state[0];//+ Ki*sum_of_error +
+            cmd_mw_state[0] += cmd_mw_state[1];
 
-            if(mw_state[0] > MAX_RPM)
+            if(cmd_mw_state[0] > MAX_RPM)
             {
-                mw_state[0] = MAX_RPM;
+                cmd_mw_state[0] = MAX_RPM;
             }
-            else if(mw_state[0] <  MIN_RPM)
+            else if(cmd_mw_state[0] <  MIN_RPM)
             {
-                mw_state[0] = MIN_RPM;
+                cmd_mw_state[0] = MIN_RPM;
             }
-            setMWRPM(mw_state[0]);
+//            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4850);
+//            setMWRPM(cmd_mw_state[0]);
         }
     }
 //

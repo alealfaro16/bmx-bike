@@ -26,11 +26,11 @@ float A = 0.5;
 float B = 0.5;
 
 //PWM duty cycle to Speed Coefficients (Empirically calculated)
-float FORWARD_A = 0.205;
-float FORWARD_B = 4771;
+float FORWARD_A = 0.133;
+float FORWARD_B = 4740;
 
-float REVERSE_A = 0.287;
-float REVERSE_B = 4557;
+float REVERSE_A = 0.121;
+float REVERSE_B = 4615;
 
 //int16_t roll, pitch, yaw, prev_roll; //IMU angles
 volatile int16_t rpm, accl;
@@ -58,7 +58,9 @@ void StartPIDControlISR(void)
     TimerIntClear(TIMER2_BASE,status);
     TimerDisable(TIMER2_BASE, TIMER_A);
 
-    turnPIDMW(true);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4800);
+
+//    turnPIDMW(true);
 
 }
 void turnPIDMW(bool state)
