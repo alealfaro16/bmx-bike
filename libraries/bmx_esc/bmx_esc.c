@@ -25,15 +25,17 @@ int euler_ang_pid[3];
 float A = 0.5;
 float B = 0.5;
 
-//PWM duty cycle to Speed Coefficients (Empirically calculated)
-float FORWARD_A = 0.133;
-float FORWARD_B = 4740;
-
-float REVERSE_A = 0.121;
-float REVERSE_B = 4615;
+//MW PWM duty cycle to Speed Coefficients (Empirically calculated)
+float MW_FORWARD_A = 0.919;
+float MW_FORWARD_B = 4699;
+float MW_REVERSE_A = 0.304;
+float MW_REVERSE_B = 4648;
 
 //int16_t roll, pitch, yaw, prev_roll; //IMU angles
 volatile int16_t rpm, accl;
+
+volatile bool moveForwardFlag = false;
+volatile bool moveBackwardFlag = false;
 
 
 
@@ -46,8 +48,24 @@ static void PIDControlISR(void)
     if(PIDOn)
     {
         //Set RPM
-        RPMtoESCSignal(rpm);
+        MWRPMtoESCSignal(rpm);
     }
+
+//    if(moveForwardFlag)
+//    {
+//        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, BW_FORWARD_TICKS);
+//    }
+//    else if(moveBackwardFlag)
+//    {
+//        PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, BW_BACKWARD_TICKS);
+//    }
+//    else
+//    {
+//       PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, 4700);
+//    }
+//
+//    moveForwardFlag = false;
+//    moveBackwardFlag = false;
 
 }
 
@@ -56,7 +74,7 @@ void StartPIDControlISR(void)
     uint32_t status=0;
     status = TimerIntStatus(TIMER2_BASE,true);
     TimerIntClear(TIMER2_BASE,status);
-    TimerDisable(TIMER2_BASE, TIMER_A);
+//    TimerDisable(TIMER2_BASE, TIMER_A);
 
     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4800);
 
@@ -116,15 +134,21 @@ void ConfigurePWM(void)
     while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOB))
     {
     }
-    GPIOPinConfigure(GPIO_PB4_M0PWM2);
+
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))
+    {
+    }
     GPIOPinConfigure(GPIO_PB5_M0PWM3);
-    GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_4);
-    GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_5);
+    GPIOPinConfigure(GPIO_PC4_M0PWM6);
+    GPIOPinTypePWM(GPIO_PORTC_BASE, GPIO_PIN_4); //Back Wheel PWM
+    GPIOPinTypePWM(GPIO_PORTB_BASE, GPIO_PIN_5); //MW PWM
 
     // Configure the PWM generator for count down mode with immediate updates to the parameters.
     // SYNC parameter has something to do with the change of the period parameter N
     // NO_SYNC means the parameter can be changed without a synchronize event trigger
     PWMGenConfigure(PWM0_BASE, PWM_GEN_1, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+    PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
 
     // N = (1 / f) * SysClk.  Where N is the PWMGenPeriodSet
     // function parameter, f is the desired frequency, and SysClk is the
@@ -133,16 +157,18 @@ void ConfigurePWM(void)
     // DIV = 8, N = 125000
     // DIV = 4, N = 250000 and so on
     PWMGenPeriodSet(PWM0_BASE, PWM_GEN_1, PWM_N_TICKS);
+    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, PWM_N_TICKS);
 
     // Set the pulse width of PWM2 and PWM3 for a 7.5% duty cycle.
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, NEUTRAL_TICKS);
     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, NEUTRAL_TICKS);
+    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_6, NEUTRAL_TICKS);
 
     // Start the timers in generator 1.
     PWMGenEnable(PWM0_BASE, PWM_GEN_1);
+    PWMGenEnable(PWM0_BASE, PWM_GEN_3);
 
     // Enable the outputs.
-    PWMOutputState(PWM0_BASE, PWM_OUT_2_BIT|PWM_OUT_3_BIT, true);
+    PWMOutputState(PWM0_BASE, PWM_OUT_6_BIT|PWM_OUT_3_BIT, true);
 
 }
 
@@ -210,15 +236,14 @@ void ConfigurePIDControlStartTimer(void)
     TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
 }
 
-
-void RPMtoESCSignal(int16_t speed){
+void MWRPMtoESCSignal(int16_t speed){
 
   uint16_t ticks;
   rpm = speed;
 
   if(speed >0)
   {
-     ticks = FORWARD_A*rpm + FORWARD_B;
+     ticks = MW_FORWARD_A*rpm + MW_FORWARD_B;
 
   }
   else if(speed <150 && speed >0)
@@ -231,7 +256,7 @@ void RPMtoESCSignal(int16_t speed){
   }
   else
   {
-      ticks = REVERSE_A*rpm+ REVERSE_B;
+      ticks = MW_REVERSE_A*rpm+ MW_REVERSE_B;
 
   }
 
@@ -240,4 +265,3 @@ void RPMtoESCSignal(int16_t speed){
   PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, ticks);
 
 }
-

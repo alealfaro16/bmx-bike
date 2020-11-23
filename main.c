@@ -44,9 +44,9 @@ uint32_t real_rpm;
 int16_t cmd_mw_state[2] = {0, 0}; //commanded speed and acceleration
 int16_t real_mw_state[2] = {0, 0}; //real speed and acceleration
 //PID Control
-float set_point = 178.7; // imu is not completely parallel to the floor
+float set_point = 181; // imu is not completely parallel to the floor
 float sum_of_error = 0, prev_error = 0, error = 0, dt = 1;//dt = 1s
-float Kp = -350, Ki = 1, Kd = 1;
+float Kp = -150, Ki = 1, Kd = 1;
 
 void ConfigureTivaUART()
 {
@@ -115,6 +115,8 @@ int main(void)
 
   delayMs(3000);
   GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
+
+//  PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4800);
   while(1)
   {
 
@@ -133,8 +135,8 @@ int main(void)
     {
         getEulers(bike_angles);
         getRealMWState(real_mw_state);
-//        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, cmd_mw_state[0], cmd_mw_state[1], real_mw_state[0], real_mw_state[1]);
-        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, 0, 0, real_mw_state[0], 0);
+        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, cmd_mw_state[0], cmd_mw_state[1], real_mw_state[0], 0);
+//        sprintf(data_stream_str,"y%.2fyp%.2fpr%.2frs%3dsa%3dav%3dvl%3dl \n",(float) bike_angles[0]/1000.00,(float) bike_angles[1]/1000.00, (float) bike_angles[2]/1000.00, 0, 0, real_mw_state[0], 0);
         printBLEString(data_stream_str);
 
     }
@@ -159,15 +161,15 @@ int main(void)
             cmd_mw_state[1] = Kp*error- Kd*cmd_mw_state[0];//+ Ki*sum_of_error +
             cmd_mw_state[0] += cmd_mw_state[1];
 
-            if(cmd_mw_state[0] > MAX_RPM)
+            if(cmd_mw_state[0] > MW_MAX_RPM)
             {
-                cmd_mw_state[0] = MAX_RPM;
+                cmd_mw_state[0] = MW_MAX_RPM;
             }
-            else if(cmd_mw_state[0] <  MIN_RPM)
+            else if(cmd_mw_state[0] <  MW_MIN_RPM)
             {
-                cmd_mw_state[0] = MIN_RPM;
+                cmd_mw_state[0] = MW_MIN_RPM;
             }
-//            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, 4850);
+
 //            setMWRPM(cmd_mw_state[0]);
         }
     }

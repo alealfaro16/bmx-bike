@@ -90,6 +90,17 @@ void UART1IntHandler(void)
             setStopFlag();
             streaming_data = false;
         }
+        else if(strstr(rx_buffer, "forward") != NULL)
+        {
+
+            moveForwardFlag = true;
+
+        }
+        else if(strstr(rx_buffer, "backward") != NULL)
+        {
+
+            moveBackwardFlag = true;
+        }
 
         index  = 0;
     }
